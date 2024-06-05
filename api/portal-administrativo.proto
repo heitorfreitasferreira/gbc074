@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "br.ufu.facom.gbc074.projeto.cadastro";
+option go_package = "github.com/br.ufu.facom.gbc074.projeto.cadastro";
+
+package cadastro;
+
+message Usuario{
+  // CPF do usuario (chave)
+  string cpf     = 1;
+  string nome    = 2;
+}
+
+message Livro {
+  // ISBN do livro (chave)
+  string isbn   = 1;
+  string titulo = 2;
+  string autor  = 3;
+  int32 total   = 4;
+}
+
+message Status {
+  // 0 = sucesso, 1 = erro
+  int32 status = 1; 
+  // detalhes do erro para status = 1
+  string msg   = 2;
+}
+
+message Identificador {
+  // cpf para usuario, isbn para livro
+  string id = 1;
+}
+
+message Vazia {}
+
+service PortalCadastro {
+  rpc NovoUsuario(Usuario) returns (Status) {}
+  rpc EditaUsuario(Usuario) returns (Status) {}
+  rpc RemoveUsuario(Identificador) returns (Status) {}
+  rpc ObtemUsuario(Identificador) returns (Usuario) {}
+  rpc ObtemTodosUsuarios(Vazia) returns (stream Usuario) {}
+  rpc NovoLivro(Livro) returns (Status) {}
+  rpc EditaLivro(Livro) returns (Status) {}
+  rpc RemoveLivro(Identificador) returns (Status) {}
+  rpc ObtemLivro(Identificador) returns (Livro) {}
+  rpc ObtemTodosLivros(Vazia) returns (stream Livro) {}
+}

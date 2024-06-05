@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "br.ufu.facom.gbc074.projeto.biblioteca";
+
+package biblioteca;
+
+message Usuario{
+  // CPF do usuario (chave)
+  string cpf     = 1;
+  string nome    = 2;
+  // campo presente apenas no portal biblioteca
+  bool bloqueado = 3;
+}
+
+message Livro {
+  // ISBN do livro (chave)
+  string isbn    = 1;
+  string titulo  = 2;
+  string autor   = 3;
+  int32 total    = 4;
+  // campo presente apenas no portal biblioteca
+  int32 restante = 5;
+}
+
+message Status {
+  // 0 = sucesso, 1 = erro
+  int32 status = 1; 
+  // detalhes do erro para status = 1
+  string msg   = 2;
+}
+
+message Identificador {
+  // cpf para usuario, isbn para livro
+  string id = 1;
+}
+
+message UsuarioLivro {
+  Identificador usuario = 1;
+  Identificador livro   = 2;
+}
+
+message UsuarioBloqueado {
+  Usuario usuario       = 1;
+  // livro(s) que causou(aram) bloqueio
+  repeated Livro livros = 2;
+}
+
+message Criterio {
+  string criterio = 1;
+}
+
+message Vazia {}
+
+service PortalBiblioteca {
+  rpc RealizaEmprestimo(stream UsuarioLivro) returns (Status) {}
+  rpc RealizaDevolucao(stream UsuarioLivro) returns (Status) {}
+  rpc BloqueiaUsuarios(Vazia) returns (Status) {}
+  rpc LiberaUsuarios(Vazia) returns (Status) {}
+  rpc ListaUsuariosBloqueados(Vazia) returns (stream UsuarioBloqueado) {}
+  rpc ListaLivrosEmprestados(Vazia) returns (stream Livro) {}
+  rpc ListaLivrosEmFalta(Vazia) returns (stream Livro) {}
+  rpc PesquisaLivro(Criterio) returns (stream Livro) {}
+}
