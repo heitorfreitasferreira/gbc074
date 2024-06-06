@@ -56,7 +56,7 @@ func main() {
 						},
 						SubModel: []tea.Model{
 							handlers.ReadBookByTerm{},
-							handlers.ReadAllBooks{},
+							handlers.NewReadAllBooks(),
 						},
 					},
 					handlers.UpdateBook{},
