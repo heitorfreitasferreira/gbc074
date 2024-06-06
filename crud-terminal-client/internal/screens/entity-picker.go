@@ -2,17 +2,17 @@ package screens
 
 import tea "github.com/charmbracelet/bubbletea"
 
-type EntityPicker struct {
+type OptionPicker struct {
 	Choices  []string
 	Cursor   int
 	SubModel []tea.Model
 }
 
-func (m EntityPicker) Init() tea.Cmd {
+func (m OptionPicker) Init() tea.Cmd {
 	return nil
 }
 
-func (m EntityPicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m OptionPicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -33,8 +33,8 @@ func (m EntityPicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m EntityPicker) View() string {
-	baseText := "Choose a resource to manage: \n\n"
+func (m OptionPicker) View() string {
+	baseText := "Choose an option: \n\n"
 	for i, choice := range m.Choices {
 		cursor := " "
 		if m.Cursor == i {
