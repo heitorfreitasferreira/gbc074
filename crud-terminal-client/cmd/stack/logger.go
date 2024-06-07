@@ -26,7 +26,7 @@ var stateToName = map[types.State]string{
 
 func LogStack() {
 	for i, s := range STACK {
-		fmt.Printf("%s  ", stateToName[s])
+		fmt.Printf("%s", stateToName[s])
 		if i != len(STACK)-1 {
 			fmt.Printf("->")
 		} else {

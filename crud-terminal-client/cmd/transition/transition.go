@@ -42,6 +42,9 @@ func nextState(s types.State, t types.Transition) (types.State, error) {
 			return 1, nil
 		case 'b':
 			stack.STACK = stack.STACK[:len(stack.STACK)-1]
+			return 0, nil
+		case 'l':
+			stack.STACK = append(stack.STACK, s)
 			return 2, nil
 		}
 	case 1:

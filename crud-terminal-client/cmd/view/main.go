@@ -5,6 +5,7 @@ import (
 
 	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/stack"
 	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/types"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/internal/handlers"
 )
 
 func View(s types.State) {
@@ -14,7 +15,7 @@ func View(s types.State) {
 	//--------------------------------------------------------------------------
 	[]func(){
 		func() { // q0
-			avaliableTransitions := []rune{'u', 'b'}
+			avaliableTransitions := []rune{'u', 'l'}
 			fmt.Println("Welcome to the CRUD terminal client!")
 			fmt.Printf("Avaliable transitions: ")
 			for _, tr := range avaliableTransitions {
@@ -41,6 +42,7 @@ func View(s types.State) {
 			fmt.Println()
 		},
 		func() { // q3
+			handlers.NewCreateUserUseCase()
 			avaliableTransitions := []rune{'b'}
 			fmt.Println("Create state")
 			fmt.Printf("Avaliable transitions: ")
