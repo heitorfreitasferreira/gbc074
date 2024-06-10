@@ -43,6 +43,9 @@ func View(s types.State) {
 		},
 		func() { // q3
 			handlers.NewCreateUserUseCase()
+
+			fmt.Print("\033[H\033[2J") // Clear the console screen
+
 			avaliableTransitions := []rune{'b'}
 			fmt.Println("Create state")
 			fmt.Printf("Avaliable transitions: ")

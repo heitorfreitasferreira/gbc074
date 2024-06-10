@@ -1,6 +1,3 @@
-# Makefile
-
-# Variáveis
 GO := go
 BUILD_DIR := ../bin
 BIN_NAME := crud-client
