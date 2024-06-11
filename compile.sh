@@ -1,13 +1,17 @@
 #!/bin/bash
 
-cd ./crud-terminal-server
-go get -v -t -d ./...
-make build
+directories=(
+    "./crud-terminal-server"
+    "./crud-terminal-client"
+)
 
-cd ..
+for dir in "${directories[@]}"
+do
+    cd "$dir"
+    echo "Getting dependencies for $dir"
 
-cd ./crud-terminal-client
-go get -v -t -d ./...
-make build
+    go get -v -t -d ./...
+    make build
 
-cd ..
+    cd ..
+done
