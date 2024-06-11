@@ -6,7 +6,11 @@ BIN_NAME := crud-server
 
 all: build
 
-build:
+install-deps:
+	@echo "Instalando as dependências do servidor administrativo..."
+	@$(GO) mod download
+
+build: install-deps
 	@echo "Compilando o servidor administrativo..."
 	@$(GO) build -o $(BUILD_DIR)/$(BIN_NAME) ./cmd/main.go
 
