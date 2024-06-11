@@ -34,6 +34,7 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *br_ufu_facom_gbc074_p
 		Nome: usuario.Nome,
 	}
 	if !user.Cpf.Validate() {
+		log.Printf("CPF inválido")
 		return &br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
@@ -78,6 +79,7 @@ func (s *Server) AtualizarUsuario(ctx context.Context, usuario *br_ufu_facom_gbc
 		Nome: usuario.Nome,
 	}
 	if !user.Cpf.Validate() {
+		log.Printf("CPF inválido")
 		return &br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 

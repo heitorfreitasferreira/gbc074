@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rpc-mqtt-library-manager/crud-terminal-server/internal/database"
@@ -13,31 +14,31 @@ const qos byte = 2
 
 var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[string]func(client mqtt.Client, msg mqtt.Message){
 	"user/create": func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("Mensagem recebida no tópico user/create: %s\n", msg.Payload())
+		log.Printf("Mensagem recebida no tópico user/create: %s\n", msg.Payload())
 		var user database.User
 		err := json.Unmarshal(msg.Payload(), &user)
 		if err != nil {
-			fmt.Printf("Erro ao converter dados do usuário para JSON: %v", err)
+			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 			return
 		}
 		database.ConcreteUserRepo.CreateUser(user)
 	},
 	"user/update": func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("Mensagem recebida no tópico user/update: %s\n", msg.Payload())
+		log.Printf("Mensagem recebida no tópico user/update: %s\n", msg.Payload())
 		var user database.User
 		err := json.Unmarshal(msg.Payload(), &user)
 		if err != nil {
-			fmt.Printf("Erro ao converter dados do usuário para JSON: %v", err)
+			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 			return
 		}
 		database.ConcreteUserRepo.EditaUsuario(user)
 	},
 	"user/remove": func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("Mensagem recebida no tópico user/remove: %s\n", msg.Payload())
+		log.Printf("Mensagem recebida no tópico user/remove: %s\n", msg.Payload())
 		var user database.User
 		err := json.Unmarshal(msg.Payload(), &user)
 		if err != nil {
-			fmt.Printf("Erro ao converter dados do usuário para JSON: %v", err)
+			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 			return
 		}
 		database.ConcreteUserRepo.RemoveUsuario(user.Cpf)

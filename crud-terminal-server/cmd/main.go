@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -25,13 +26,13 @@ func main() {
 
 	mqttClient := queue.GetMqttBroker(*host, 1883, os.Getpid())
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		panic(fmt.Errorf("erro ao conectar ao broker MQTT: %v", token.Error()))
+		log.Fatalf("error connecting to MQTT broker: %v", token.Error())
 	}
 	defer mqttClient.Disconnect(250)
 
 	list, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *host, *port))
 	if err != nil {
-		panic(fmt.Errorf("erro ao abrir a porta %s: %v", *port, err))
+		log.Fatalf("error opening port %s: %v", *port, err)
 	}
 	s := grpc.NewServer()
 
@@ -39,12 +40,12 @@ func main() {
 
 	go func() {
 		<-ch
-		fmt.Println("Gracefully stopping the server...")
+		log.Println("Gracefully stopping the server...")
 		s.GracefulStop()
 	}()
 
-	fmt.Printf("Server listening at %v\n", list.Addr())
+	log.Printf("Server listening at %v\n", list.Addr())
 	if err := s.Serve(list); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
