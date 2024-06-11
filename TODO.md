@@ -16,18 +16,18 @@
 
 > Responsaveis @heitorfreitasferreira
 
-- [ ] Rotas para os casos de uso
-  - [ ] Create User
-  - [ ] Read 1 User
+- [x] Rotas para os casos de uso
+  - [x] Create User
+  - [x] Read 1 User
   - [ ] Read all User
-  - [ ] Update User
-  - [ ] Delete User
+  - [x] Update User
+  - [x] Delete User
   - [ ] Create Book
   - [ ] Read 1 Book
   - [ ] Read all Book
   - [ ] Update Book
   - [ ] Delete Book
-- [ ] Banco de dados in-memory
+- [x] Banco de dados in-memory
 - [ ] Handlers eventos mqtt com Mosquitto
 
 ## Cliente Biblioteca
