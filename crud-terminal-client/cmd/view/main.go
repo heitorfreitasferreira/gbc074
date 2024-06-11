@@ -3,158 +3,40 @@ package view
 import (
 	"fmt"
 
-	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/stack"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/dfa.go"
 	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/types"
 	"github.com/rpc-mqtt-library-manager/crud-terminal-client/internal/handlers"
 )
 
-func View(s types.State) {
+var finalStateView map[types.State]func() = map[types.State]func(){
+	types.State(3):  handlers.NewCreateUserUseCase,
+	types.State(11): nil,
+	types.State(12): nil,
+	types.State(5):  nil,
+	types.State(6):  nil,
+	types.State(7):  nil,
+	types.State(9):  nil,
+	types.State(10): nil,
+}
 
+func View(sm *dfa.StateMachine) {
+	s := sm.Q
 	fmt.Print("\033[H\033[2J") // Clear the console screen
-	stack.LogStack()
-	//--------------------------------------------------------------------------
-	[]func(){
-		func() { // q0
-			avaliableTransitions := []rune{'u', 'l'}
-			fmt.Println("Welcome to the CRUD terminal client!")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q1
-			avaliableTransitions := []rune{'c', 'r', 'u', 'd', 'b'}
-			fmt.Println("User state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q2
-			avaliableTransitions := []rune{'c', 'r', 'u', 'd', 'b'}
-			fmt.Println("Book state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q3
-			handlers.NewCreateUserUseCase()
+	if sm.IsInFinalState() {
+		finalStateView[s]()
+		err := sm.Step('b')
+		if err != nil {
+			panic("can't return back after use-case view")
+		}
+		View(sm)
 
-			fmt.Print("\033[H\033[2J") // Clear the console screen
+	} else {
+		fmt.Printf("%s\n", sm.Stack.ToString("->", sm.StateName))
+		avTransitions := ""
+		for _, tr := range sm.AvaliableTransitions() {
+			avTransitions += fmt.Sprintf("%c ", tr)
+		}
 
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Create state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q4
-			avaliableTransitions := []rune{'1', 'a', 'b'}
-			fmt.Println("Read state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q5
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Update state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q6
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Delete state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q7
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Create state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q8
-			avaliableTransitions := []rune{'1', 'a', 'b'}
-			fmt.Println("Read state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q9
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Update state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q10
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Delete state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q11
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Term state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q12
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("All state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q13
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("Term state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-		func() { // q14
-			avaliableTransitions := []rune{'b'}
-			fmt.Println("All state")
-			fmt.Printf("Avaliable transitions: ")
-			for _, tr := range avaliableTransitions {
-				fmt.Printf("%c ", tr)
-			}
-			fmt.Println()
-		},
-	}[s]()
-
-	fmt.Println()
-
+		fmt.Printf("Avaliable transitions: %s\n", avTransitions)
+	}
 }

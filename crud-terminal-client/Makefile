@@ -7,7 +7,7 @@ BIN_NAME := crud-client
 all: build
 
 build:
-	@echo "Compilando o programa..."
+	@echo "Compilando o cliente administrativo."
 	@$(GO) build -o $(BUILD_DIR)/$(BIN_NAME) ./cmd/main.go
 
 clean:
