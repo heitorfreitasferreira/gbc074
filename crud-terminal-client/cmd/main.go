@@ -1,73 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"flag"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rpc-mqtt-library-manager/crud-terminal-client/internal/handlers"
-	"github.com/rpc-mqtt-library-manager/crud-terminal-client/internal/screens"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/dfa.go"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/transition"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/cmd/view"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-client/utils"
 )
 
 func main() {
-	p := tea.NewProgram(screens.OptionPicker{
-		Choices: []string{
-			"User",
-			"Book",
-		},
-		SubModel: []tea.Model{
-			screens.OptionPicker{
-				Choices: []string{
-					"Create",
-					"Read",
-					"Update",
-					"Delete",
-				},
-				SubModel: []tea.Model{
-					handlers.NewCreateUser(),
-					screens.OptionPicker{
-						Choices: []string{
-							"By term",
-							"List all",
-						},
-						SubModel: []tea.Model{
-							handlers.ReadUserByTerm{},
-							handlers.ReadAllUsers{},
-						},
-					},
-					handlers.UpdateUser{},
-					handlers.DeleteUser{},
-				},
-			},
-			// Handlers dos livros
-			screens.OptionPicker{
-				Choices: []string{
-					"Create",
-					"Read",
-					"Update",
-					"Delete",
-				},
-				SubModel: []tea.Model{
-					handlers.CreateBook{},
-					screens.OptionPicker{
-						Choices: []string{
-							"By term",
-							"List all",
-						},
-						SubModel: []tea.Model{
-							handlers.ReadBookByTerm{},
-							handlers.NewReadAllBooks(),
-						},
-					},
-					handlers.UpdateBook{},
-					handlers.DeleteBook{},
-				},
-			},
-		},
-	})
+	sm := dfa.NewViewPicker()
+	port := flag.String("port", "50051", "Port to listen on")
 
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running client: %v", err)
-		os.Exit(1)
+	flag.Parse()
+
+	utils.Port = *port
+	for {
+		view.View(sm)
+		transition.Transition(sm)
 	}
 }
