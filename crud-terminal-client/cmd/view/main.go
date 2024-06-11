@@ -28,6 +28,8 @@ func View(sm *dfa.StateMachine) {
 		if err != nil {
 			panic("can't return back after use-case view")
 		}
+		fmt.Println("Press Enter to continue...")
+		fmt.Scanln()
 		View(sm)
 
 	} else {

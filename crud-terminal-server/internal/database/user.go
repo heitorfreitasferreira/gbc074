@@ -2,17 +2,13 @@ package database
 
 import (
 	"errors"
-	"regexp"
 	"sync"
 
 	br_ufu_facom_gbc074_projeto_cadastro "github.com/rpc-mqtt-library-manager/crud-terminal-server/api"
 	"github.com/rpc-mqtt-library-manager/crud-terminal-server/internal/utils"
 )
 
-var (
-	CPFRegexp  = regexp.MustCompile(`^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$`)
-	CNPJRegexp = regexp.MustCompile(`^\d{2}\.?\d{3}\.?\d{3}\/?(:?\d{3}[1-9]|\d{2}[1-9]\d|\d[1-9]\d{2}|[1-9]\d{3})-?\d{2}$`)
-)
+var ConcreteUserRepo UserRepo = NewInMemoryUserRepo()
 
 type User struct {
 	Cpf  utils.CPF

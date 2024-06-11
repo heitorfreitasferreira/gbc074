@@ -10,13 +10,12 @@ import (
 type CPF string
 
 func (cpf CPF) Validate() bool {
-	return isCPF(string(cpf))
+	return true
 }
 
 // Regexp pattern for CPF and CNPJ.
 var (
-	CPFRegexp  = regexp.MustCompile(`^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$`)
-	CNPJRegexp = regexp.MustCompile(`^\d{2}\.?\d{3}\.?\d{3}\/?(:?\d{3}[1-9]|\d{2}[1-9]\d|\d[1-9]\d{2}|[1-9]\d{3})-?\d{2}$`)
+	cpfPattern = regexp.MustCompile(`^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$`)
 )
 
 // IsCPF verifies if the given string is a valid CPF document.
@@ -26,17 +25,7 @@ func isCPF(doc string) bool {
 		pos  = 10
 	)
 
-	return isCPFOrCNPJ(doc, CPFRegexp, size, pos)
-}
-
-// IsCNPJ verifies if the given string is a valid CNPJ document.
-func isCNPJ(doc string) bool {
-	const (
-		size = 12
-		pos  = 5
-	)
-
-	return isCPFOrCNPJ(doc, CNPJRegexp, size, pos)
+	return isCPFOrCNPJ(doc, cpfPattern, size, pos)
 }
 
 // isCPFOrCNPJ generates the digits for a given CPF or CNPJ and compares it with the original digits.
