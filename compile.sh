@@ -3,6 +3,7 @@
 directories=(
     "./crud-terminal-server"
     "./crud-terminal-client"
+    "./cms-server"
 )
 
 for dir in "${directories[@]}"

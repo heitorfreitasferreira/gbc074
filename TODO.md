@@ -33,3 +33,5 @@
 ## Cliente Biblioteca
 
 ## Servidor Biblioteca
+
+Adicionado boilerplate; criado instância do servidor.
