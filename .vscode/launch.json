@@ -11,6 +11,14 @@
             "mode": "auto",
             "program": "${workspaceFolder}/crud-terminal-client/cmd/main.go",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "CMS Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cms-client/cmd/main.go",
+            "console": "integratedTerminal"
         }
     ]
 }
