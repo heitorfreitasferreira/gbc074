@@ -43,6 +43,36 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 		}
 		database.ConcreteUserRepo.RemoveUsuario(user.Cpf)
 	},
+	"book/create": func(client mqtt.Client, msg mqtt.Message) {
+		log.Printf("Mensagem recebida no tópico book/create: %s\n", msg.Payload())
+		var book database.Book
+		err := json.Unmarshal(msg.Payload(), &book)
+		if err != nil {
+			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
+			return
+		}
+		database.ConcreteBookRepo.CreateBook(book)
+	},
+	"book/update": func(client mqtt.Client, msg mqtt.Message) {
+		log.Printf("Mensagem recebida no tópico book/update: %s\n", msg.Payload())
+		var book database.Book
+		err := json.Unmarshal(msg.Payload(), &book)
+		if err != nil {
+			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
+			return
+		}
+		database.ConcreteBookRepo.EditaLivro(book)
+	},
+	"book/remove": func(client mqtt.Client, msg mqtt.Message) {
+		log.Printf("Mensagem recebida no tópico book/remove: %s\n", msg.Payload())
+		var book database.Book
+		err := json.Unmarshal(msg.Payload(), &book)
+		if err != nil {
+			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
+			return
+		}
+		database.ConcreteBookRepo.RemoveLivro(book.Isbn)
+	},
 }
 
 var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {

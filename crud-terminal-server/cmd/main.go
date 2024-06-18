@@ -36,7 +36,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	br_ufu_facom_gbc074_projeto_cadastro.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient))
+	br_ufu_facom_gbc074_projeto_cadastro.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
 
 	go func() {
 		<-ch
