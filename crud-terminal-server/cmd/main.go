@@ -22,12 +22,15 @@ func main() {
 
 	flag.Parse()
 	ch := make(chan os.Signal, 1)
+	// Receive notifications on chanel if receive os.Interrupt or syscall.SIGTERM.
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
 	mqttClient := queue.GetMqttBroker(*host, 1883, os.Getpid())
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalf("error connecting to MQTT broker: %v", token.Error())
 	}
+
+	// O defer garante que esse comando seja executado quando a função sair da pilha.
 	defer mqttClient.Disconnect(250)
 
 	list, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *host, *port))

@@ -84,6 +84,7 @@ var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
 }
 
 func GetMqttBroker(host string, port int, id int) mqtt.Client {
+	// Use id (received as PID) to generate unique client identifier
 	clientId := fmt.Sprintf("cad-server-%d", id)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
