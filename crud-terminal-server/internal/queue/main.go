@@ -2,77 +2,21 @@ package queue
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
-	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/rpc-mqtt-library-manager/crud-terminal-server/internal/database"
+	"github.com/rpc-mqtt-library-manager/crud-terminal-server/internal/queue/handlers"
 )
 
 const qos byte = 2
 
 var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[string]func(client mqtt.Client, msg mqtt.Message){
-	"user/create": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/create: %s\n", msg.Payload())
-		var user database.User
-		err := json.Unmarshal(msg.Payload(), &user)
-		if err != nil {
-			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-			return
-		}
-		database.ConcreteUserRepo.CreateUser(user)
-	},
-	"user/update": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/update: %s\n", msg.Payload())
-		var user database.User
-		err := json.Unmarshal(msg.Payload(), &user)
-		if err != nil {
-			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-			return
-		}
-		database.ConcreteUserRepo.EditaUsuario(user)
-	},
-	"user/remove": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/remove: %s\n", msg.Payload())
-		var user database.User
-		err := json.Unmarshal(msg.Payload(), &user)
-		if err != nil {
-			log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-			return
-		}
-		database.ConcreteUserRepo.RemoveUsuario(user.Cpf)
-	},
-	"book/create": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/create: %s\n", msg.Payload())
-		var book database.Book
-		err := json.Unmarshal(msg.Payload(), &book)
-		if err != nil {
-			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-			return
-		}
-		database.ConcreteBookRepo.CreateBook(book)
-	},
-	"book/update": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/update: %s\n", msg.Payload())
-		var book database.Book
-		err := json.Unmarshal(msg.Payload(), &book)
-		if err != nil {
-			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-			return
-		}
-		database.ConcreteBookRepo.EditaLivro(book)
-	},
-	"book/remove": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/remove: %s\n", msg.Payload())
-		var book database.Book
-		err := json.Unmarshal(msg.Payload(), &book)
-		if err != nil {
-			log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-			return
-		}
-		database.ConcreteBookRepo.RemoveLivro(book.Isbn)
-	},
+	"user/create": handlers.CreateUser,
+	"user/update": handlers.UpdateUser,
+	"user/remove": handlers.RemoveUser,
+	"book/create": handlers.CreateBook,
+	"book/update": handlers.UpdateBook,
+	"book/remove": handlers.RemoveBook,
 }
 
 var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {
