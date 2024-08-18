@@ -28,6 +28,8 @@ func main() {
 	mqttClient := queue.GetMqttBroker(*host, 1883, os.Getpid())
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalf("error connecting to MQTT broker: %v", token.Error())
+	} else {
+		log.Println("Connected to MQTT broker")
 	}
 
 	defer mqttClient.Disconnect(250)
