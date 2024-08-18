@@ -10,30 +10,47 @@ import (
 
 const qos byte = 2
 
+type Topic string
+
+const (
+	BookLoanTopic         Topic = "book/loan"
+	BookReturnTopic       Topic = "book/return"
+	BookListBorrowedTopic Topic = "book/list-borrowed"
+	BookListMissingTopic  Topic = "book/list-missing"
+	BookSearchTopic       Topic = "book/search"
+	UserBlockTopic        Topic = "user/block"
+	UserFreeTopic         Topic = "user/free"
+	UserListBlockedTopic  Topic = "user/list-blocked"
+)
+
+func logTopicMessage(topic Topic, msg []byte) {
+	log.Printf("Mensagem recebida no tópico %s: %s\n", topic, msg)
+}
+
 var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[string]func(client mqtt.Client, msg mqtt.Message){
-	"book/loan": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/loan: %s\n", msg.Payload())
+	string(BookLoanTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookLoanTopic, msg.Payload())
 	},
-	"book/return": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/return: %s\n", msg.Payload())
+	string(BookReturnTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookReturnTopic, msg.Payload())
 	},
-	"book/list-borrowed": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/list-borrowed: %s\n", msg.Payload())
+	string(BookListBorrowedTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookListBorrowedTopic, msg.Payload())
 	},
-	"book/list-missing": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/missing: %s\n", msg.Payload())
+	string(BookListMissingTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookListMissingTopic, msg.Payload())
 	},
-	"book/search": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico book/search: %s\n", msg.Payload())
+	string(BookSearchTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookSearchTopic, msg.Payload())
 	},
-	"user/block": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/block: %s\n", msg.Payload())
+	string(UserBlockTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserBlockTopic, msg.Payload())
 	},
-	"user/free": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/free: %s\n", msg.Payload())
+	string(UserFreeTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserFreeTopic, msg.Payload())
 	},
-	"user/list-blocked": func(client mqtt.Client, msg mqtt.Message) {
-		log.Printf("Mensagem recebida no tópico user/list-blocked: %s\n", msg.Payload())
+	string(UserListBlockedTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserListBlockedTopic, msg.Payload())
 	},
 }
 
