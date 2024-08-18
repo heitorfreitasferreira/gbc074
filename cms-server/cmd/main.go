@@ -49,6 +49,7 @@ func main() {
 		server.NewServer(
 			database.ConcreteUserRepo,
 			database.ConcreteBookRepo,
+			mqttClient,
 		),
 	)
 
