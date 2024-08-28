@@ -1,5 +1,5 @@
 #!/bin/bash
 
-if [ -x "./bin/cms-server" ]; then
-    ./bin/cms-server --port "$1"
+if [ -x "./bin/bib-server" ]; then
+    ./bin/bib-server --port "$1"
 fi

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-if [ -x "./bin/crud-server" ]; then
-    ./bin/crud-server --port "$1"
+if [ -x "./bin/cad-server" ]; then
+    ./bin/cad-server --port "$1"
 fi
