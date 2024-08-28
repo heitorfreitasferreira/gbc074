@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -31,7 +32,7 @@ func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, mqttClien
 
 var qos byte = 2
 
-func (s *Server) publishMessage(topic queue.Topic, message string) error {
+func (s *Server) publishMessage(topic queue.Topic, message []byte) error {
 	var errorMessage string
 
 	if s.mqttClient.IsConnected() {
@@ -51,41 +52,86 @@ func (s *Server) publishMessage(topic queue.Topic, message string) error {
 }
 
 func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_RealizaEmprestimoServer) error {
-	s.publishMessage(queue.BookLoanTopic, "Emprestimo realizado")
-	return nil
+	data, err := stream.Recv()
+	log.Printf("Recebendo dados %v", data)
+
+	if err != nil {
+		return stream.SendAndClose(
+			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+				Status: 1,
+				Msg:    "Erro ao receber dados",
+			},
+		)
+	}
+
+	if data.Usuario == nil || data.Livro == nil {
+		return stream.SendAndClose(
+			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+				Status: 1,
+				Msg:    "Dados inválidos",
+			},
+		)
+	}
+
+	userBook := database.UserBook{
+		UserId:   data.Usuario.Id,
+		BookISNB: data.Livro.Id,
+	}
+
+	jsonData, err := json.Marshal(userBook)
+	if err != nil {
+		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
+		log.Println(errMsg)
+		return stream.SendAndClose(
+			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+				Status: 1,
+				Msg:    errMsg,
+			},
+		)
+	}
+
+	err = s.publishMessage(queue.BookLoanTopic, jsonData)
+	if err != nil {
+		return stream.SendAndClose(
+			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+				Status: 1,
+				Msg:    err.Error(),
+			},
+		)
+	}
+
+	return stream.SendAndClose(
+		&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+			Status: 0,
+			Msg:    "Empréstimo realizado",
+		},
+	)
 }
 
 func (s *Server) RealizaDevolucao(stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_RealizaDevolucaoServer) error {
-	s.publishMessage(queue.BookReturnTopic, "Devolução realizada")
 	return nil
 }
 
 func (s *Server) BloqueiaUsuarios(ctx context.Context, req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia) (*br_ufu_facom_gbc074_projeto_biblioteca.Status, error) {
-	s.publishMessage(queue.UserBlockTopic, "Usuário bloqueado")
 	return nil, nil
 }
 
 func (s *Server) LiberaUsuarios(ctx context.Context, req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia) (*br_ufu_facom_gbc074_projeto_biblioteca.Status, error) {
-	s.publishMessage(queue.UserFreeTopic, "Usuário liberado")
 	return nil, nil
 }
 
 func (s *Server) ListaUsuariosBloqueados(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
-	s.publishMessage(queue.UserListBlockedTopic, "Lista de usuários bloqueados")
 	return nil
 }
 
 func (s *Server) ListaLivrosEmprestados(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
-	s.publishMessage(queue.BookListBorrowedTopic, "Lista de livros emprestados")
 	return nil
 }
 
 func (s *Server) ListaLivrosEmFalta(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
-	s.publishMessage(queue.BookListMissingTopic, "Lista de livros em falta")
 	return nil
 }
 
 func (s *Server) PesquisaLivro(req *br_ufu_facom_gbc074_projeto_biblioteca.Criterio, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_PesquisaLivroServer) error {
-	s.publishMessage(queue.BookSearchTopic, "Livro encontrado")
 	return nil
 }
