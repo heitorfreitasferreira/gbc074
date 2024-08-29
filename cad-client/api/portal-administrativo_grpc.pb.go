@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: api/portal-administrativo.proto
 
-package br_ufu_facom_gbc074_projeto_cadastro
+package api
 
 import (
 	context "context"
