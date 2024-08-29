@@ -4,8 +4,9 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"library-manager/cad-server/internal/queue/handlers"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 const qos byte = 2

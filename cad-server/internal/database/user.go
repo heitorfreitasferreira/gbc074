@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	br_ufu_facom_gbc074_projeto_cadastro "library-manager/cad-server/api"
+	"library-manager/cad-server/api"
 	"library-manager/cad-server/internal/utils"
 )
 
@@ -16,21 +16,21 @@ type User struct {
 }
 
 type UserRepo interface {
-	CreateUser(User) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
-	EditaUsuario(User) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
-	RemoveUsuario(utils.CPF) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
+	CreateUser(User) (api.Status, error)
+	EditaUsuario(User) (api.Status, error)
+	RemoveUsuario(utils.CPF) (api.Status, error)
 	ObtemUsuario(utils.CPF) (User, error)
 	ObtemTodosUsuarios() ([]User, error)
 }
 
-func UserToProto(user User) br_ufu_facom_gbc074_projeto_cadastro.Usuario {
-	return br_ufu_facom_gbc074_projeto_cadastro.Usuario{
+func UserToProto(user User) api.Usuario {
+	return api.Usuario{
 		Cpf:  string(user.Cpf),
 		Nome: user.Nome,
 	}
 }
 
-func ProtoToUser(protoUser *br_ufu_facom_gbc074_projeto_cadastro.Usuario) User {
+func ProtoToUser(protoUser *api.Usuario) User {
 	return User{
 		Cpf:  utils.CPF(protoUser.Cpf),
 		Nome: protoUser.Nome,
@@ -46,34 +46,34 @@ func NewInMemoryUserRepo() UserRepo {
 	return &InMemoryUserRepo{users: make(map[utils.CPF]User)}
 }
 
-func (repo *InMemoryUserRepo) CreateUser(user User) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryUserRepo) CreateUser(user User) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[user.Cpf]; ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "usuário já existe"}, nil
+		return api.Status{Status: 1, Msg: "usuário já existe"}, nil
 	}
 	repo.users[user.Cpf] = user
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "usuário criado com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "usuário criado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) EditaUsuario(user User) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryUserRepo) EditaUsuario(user User) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[user.Cpf]; !ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "usuário não existe"}, nil
+		return api.Status{Status: 1, Msg: "usuário não existe"}, nil
 	}
 	repo.users[user.Cpf] = user
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "usuário atualizado com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "usuário atualizado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[id]; !ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "usuário não existe"}, nil
+		return api.Status{Status: 1, Msg: "usuário não existe"}, nil
 	}
 	delete(repo.users, id)
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "usuário removido com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "usuário removido com sucesso"}, nil
 }
 
 func (repo *InMemoryUserRepo) ObtemUsuario(id utils.CPF) (User, error) {

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"log"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"library-manager/cad-server/internal/database"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 func CreateUser(client mqtt.Client, msg mqtt.Message) {

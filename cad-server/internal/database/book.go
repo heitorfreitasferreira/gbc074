@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	br_ufu_facom_gbc074_projeto_cadastro "library-manager/cad-server/api"
+	"library-manager/cad-server/api"
 	"library-manager/cad-server/internal/utils"
 )
 
@@ -18,15 +18,15 @@ type Book struct {
 }
 
 type BookRepo interface {
-	CreateBook(Book) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
-	EditaLivro(Book) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
-	RemoveLivro(utils.ISBN) (br_ufu_facom_gbc074_projeto_cadastro.Status, error)
+	CreateBook(Book) (api.Status, error)
+	EditaLivro(Book) (api.Status, error)
+	RemoveLivro(utils.ISBN) (api.Status, error)
 	ObtemLivro(utils.ISBN) (Book, error)
 	ObtemTodosLivros() ([]Book, error)
 }
 
-func BookToProto(book Book) br_ufu_facom_gbc074_projeto_cadastro.Livro {
-	return br_ufu_facom_gbc074_projeto_cadastro.Livro{
+func BookToProto(book Book) api.Livro {
+	return api.Livro{
 		Isbn:   string(book.Isbn),
 		Titulo: book.Titulo,
 		Autor:  book.Autor,
@@ -34,7 +34,7 @@ func BookToProto(book Book) br_ufu_facom_gbc074_projeto_cadastro.Livro {
 	}
 }
 
-func ProtoToBook(protoBook *br_ufu_facom_gbc074_projeto_cadastro.Livro) Book {
+func ProtoToBook(protoBook *api.Livro) Book {
 	return Book{
 		Isbn:   utils.ISBN(protoBook.Isbn),
 		Titulo: protoBook.Titulo,
@@ -52,34 +52,34 @@ func NewInMemoryBookRepo() BookRepo {
 	return &InMemoryBookRepo{books: make(map[utils.ISBN]Book)}
 }
 
-func (repo *InMemoryBookRepo) CreateBook(book Book) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryBookRepo) CreateBook(book Book) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.books[book.Isbn]; ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "livro já existe"}, nil
+		return api.Status{Status: 1, Msg: "livro já existe"}, nil
 	}
 	repo.books[book.Isbn] = book
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "livro criado com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "livro criado com sucesso"}, nil
 }
 
-func (repo *InMemoryBookRepo) EditaLivro(book Book) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryBookRepo) EditaLivro(book Book) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.books[book.Isbn]; !ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "livro não existe"}, nil
+		return api.Status{Status: 1, Msg: "livro não existe"}, nil
 	}
 	repo.books[book.Isbn] = book
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "livro atualizado com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "livro atualizado com sucesso"}, nil
 }
 
-func (repo *InMemoryBookRepo) RemoveLivro(id utils.ISBN) (br_ufu_facom_gbc074_projeto_cadastro.Status, error) {
+func (repo *InMemoryBookRepo) RemoveLivro(id utils.ISBN) (api.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.books[id]; !ok {
-		return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 1, Msg: "livro não existe"}, nil
+		return api.Status{Status: 1, Msg: "livro não existe"}, nil
 	}
 	delete(repo.books, id)
-	return br_ufu_facom_gbc074_projeto_cadastro.Status{Status: 0, Msg: "livro removido com sucesso"}, nil
+	return api.Status{Status: 0, Msg: "livro removido com sucesso"}, nil
 }
 
 func (repo *InMemoryBookRepo) ObtemLivro(id utils.ISBN) (Book, error) {

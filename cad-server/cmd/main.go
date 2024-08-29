@@ -9,11 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc"
-	br_ufu_facom_gbc074_projeto_cadastro "library-manager/cad-server/api"
+	"library-manager/cad-server/api"
 	"library-manager/cad-server/internal/database"
 	"library-manager/cad-server/internal/queue"
 	"library-manager/cad-server/internal/server"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	br_ufu_facom_gbc074_projeto_cadastro.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
+	api.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
 
 	go func() {
 		<-ch
