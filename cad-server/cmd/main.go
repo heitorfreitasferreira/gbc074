@@ -9,8 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/cad-server/internal/server"
 	api_cad "library-manager/shared/api/cad"
+
+	"library-manager/cad-server/internal/server"
 	"library-manager/shared/database"
 	"library-manager/shared/queue"
 

@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	api "library-manager/shared/api/bib"
+	"library-manager/shared/api/bib"
 
 	"library-manager/bib-server/internal/server"
 	"library-manager/shared/database"
@@ -45,7 +45,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	// Register server handlers
-	api.RegisterPortalBibliotecaServer(
+	api_bib.RegisterPortalBibliotecaServer(
 		grpcServer,
 		server.NewServer(
 			database.ConcreteUserRepo,

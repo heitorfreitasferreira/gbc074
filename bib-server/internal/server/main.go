@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"log"
 
-	api "library-manager/shared/api/bib"
+	"library-manager/shared/api/bib"
 	"library-manager/shared/database"
-	"library-manager/shared/queue"
+	"library-manager/shared/queue/handlers"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 type Server struct {
-	api.UnimplementedPortalBibliotecaServer
+	api_bib.UnimplementedPortalBibliotecaServer
 
 	userRepo database.UserRepo
 	bookRepo database.BookRepo
@@ -33,7 +33,7 @@ func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, mqttClien
 
 var qos byte = 2
 
-func (s *Server) publishMessage(topic queue.Topic, message []byte) error {
+func (s *Server) publishMessage(topic handlers.UserBookTopic, message []byte) error {
 	var errorMessage string
 
 	if s.mqttClient.IsConnected() {
@@ -52,13 +52,13 @@ func (s *Server) publishMessage(topic queue.Topic, message []byte) error {
 	return errors.New("Server.publishMessage: " + errorMessage)
 }
 
-func (s *Server) RealizaEmprestimo(stream api.PortalBiblioteca_RealizaEmprestimoServer) error {
+func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmprestimoServer) error {
 	data, err := stream.Recv()
 	log.Printf("Recebendo dados %v", data)
 
 	if err != nil {
 		return stream.SendAndClose(
-			&api.Status{
+			&api_bib.Status{
 				Status: 1,
 				Msg:    "Erro ao receber dados",
 			},
@@ -67,7 +67,7 @@ func (s *Server) RealizaEmprestimo(stream api.PortalBiblioteca_RealizaEmprestimo
 
 	if data.Usuario == nil || data.Livro == nil {
 		return stream.SendAndClose(
-			&api.Status{
+			&api_bib.Status{
 				Status: 1,
 				Msg:    "Dados inválidos",
 			},
@@ -84,17 +84,17 @@ func (s *Server) RealizaEmprestimo(stream api.PortalBiblioteca_RealizaEmprestimo
 		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
 		log.Println(errMsg)
 		return stream.SendAndClose(
-			&api.Status{
+			&api_bib.Status{
 				Status: 1,
 				Msg:    errMsg,
 			},
 		)
 	}
 
-	err = s.publishMessage(queue.BookLoanTopic, jsonData)
+	err = s.publishMessage(handlers.BookLoanTopic, jsonData)
 	if err != nil {
 		return stream.SendAndClose(
-			&api.Status{
+			&api_bib.Status{
 				Status: 1,
 				Msg:    err.Error(),
 			},
@@ -102,37 +102,37 @@ func (s *Server) RealizaEmprestimo(stream api.PortalBiblioteca_RealizaEmprestimo
 	}
 
 	return stream.SendAndClose(
-		&api.Status{
+		&api_bib.Status{
 			Status: 0,
 			Msg:    "Empréstimo realizado",
 		},
 	)
 }
 
-func (s *Server) RealizaDevolucao(stream api.PortalBiblioteca_RealizaDevolucaoServer) error {
+func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevolucaoServer) error {
 	return nil
 }
 
-func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api.Vazia) (*api.Status, error) {
+func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_bib.Status, error) {
 	return nil, nil
 }
 
-func (s *Server) LiberaUsuarios(ctx context.Context, req *api.Vazia) (*api.Status, error) {
+func (s *Server) LiberaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_bib.Status, error) {
 	return nil, nil
 }
 
-func (s *Server) ListaUsuariosBloqueados(req *api.Vazia, stream api.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
+func (s *Server) ListaUsuariosBloqueados(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
 	return nil
 }
 
-func (s *Server) ListaLivrosEmprestados(req *api.Vazia, stream api.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
+func (s *Server) ListaLivrosEmprestados(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
 	return nil
 }
 
-func (s *Server) ListaLivrosEmFalta(req *api.Vazia, stream api.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
+func (s *Server) ListaLivrosEmFalta(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
 	return nil
 }
 
-func (s *Server) PesquisaLivro(req *api.Criterio, stream api.PortalBiblioteca_PesquisaLivroServer) error {
+func (s *Server) PesquisaLivro(req *api_bib.Criterio, stream api_bib.PortalBiblioteca_PesquisaLivroServer) error {
 	return nil
 }

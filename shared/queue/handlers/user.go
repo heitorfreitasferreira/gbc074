@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"library-manager/shared/database"
 	"log"
+
+	"library-manager/shared/database"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	api "library-manager/shared/api/cad"
+	"library-manager/shared/api/cad"
 	"library-manager/shared/utils"
 )
 
@@ -16,21 +16,21 @@ type User struct {
 }
 
 type UserRepo interface {
-	CreateUser(User) (api.Status, error)
-	EditaUsuario(User) (api.Status, error)
-	RemoveUsuario(utils.CPF) (api.Status, error)
+	CreateUser(User) (api_cad.Status, error)
+	EditaUsuario(User) (api_cad.Status, error)
+	RemoveUsuario(utils.CPF) (api_cad.Status, error)
 	ObtemUsuario(utils.CPF) (User, error)
 	ObtemTodosUsuarios() ([]User, error)
 }
 
-func UserToProto(user User) api.Usuario {
-	return api.Usuario{
+func UserToProto(user User) api_cad.Usuario {
+	return api_cad.Usuario{
 		Cpf:  string(user.Cpf),
 		Nome: user.Nome,
 	}
 }
 
-func ProtoToUser(protoUser *api.Usuario) User {
+func ProtoToUser(protoUser *api_cad.Usuario) User {
 	return User{
 		Cpf:  utils.CPF(protoUser.Cpf),
 		Nome: protoUser.Nome,
@@ -46,34 +46,34 @@ func NewInMemoryUserRepo() UserRepo {
 	return &InMemoryUserRepo{users: make(map[utils.CPF]User)}
 }
 
-func (repo *InMemoryUserRepo) CreateUser(user User) (api.Status, error) {
+func (repo *InMemoryUserRepo) CreateUser(user User) (api_cad.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[user.Cpf]; ok {
-		return api.Status{Status: 1, Msg: "usuário já existe"}, nil
+		return api_cad.Status{Status: 1, Msg: "usuário já existe"}, nil
 	}
 	repo.users[user.Cpf] = user
-	return api.Status{Status: 0, Msg: "usuário criado com sucesso"}, nil
+	return api_cad.Status{Status: 0, Msg: "usuário criado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) EditaUsuario(user User) (api.Status, error) {
+func (repo *InMemoryUserRepo) EditaUsuario(user User) (api_cad.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[user.Cpf]; !ok {
-		return api.Status{Status: 1, Msg: "usuário não existe"}, nil
+		return api_cad.Status{Status: 1, Msg: "usuário não existe"}, nil
 	}
 	repo.users[user.Cpf] = user
-	return api.Status{Status: 0, Msg: "usuário atualizado com sucesso"}, nil
+	return api_cad.Status{Status: 0, Msg: "usuário atualizado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (api.Status, error) {
+func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (api_cad.Status, error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if _, ok := repo.users[id]; !ok {
-		return api.Status{Status: 1, Msg: "usuário não existe"}, nil
+		return api_cad.Status{Status: 1, Msg: "usuário não existe"}, nil
 	}
 	delete(repo.users, id)
-	return api.Status{Status: 0, Msg: "usuário removido com sucesso"}, nil
+	return api_cad.Status{Status: 0, Msg: "usuário removido com sucesso"}, nil
 }
 
 func (repo *InMemoryUserRepo) ObtemUsuario(id utils.CPF) (User, error) {
