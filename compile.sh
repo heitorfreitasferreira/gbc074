@@ -1,2 +1,2 @@
 #!/bin/bash
-make all
+make -C ./src all
