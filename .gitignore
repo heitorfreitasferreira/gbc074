@@ -23,3 +23,6 @@ tmp/
 # Go workspace file
 go.work
 go.work.sum
+
+# VS Code
+.vscode/
