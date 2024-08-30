@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"library-manager/shared/database"
 	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"library-manager/cad-server/internal/database"
 )
 
 func CreateBook(client mqtt.Client, msg mqtt.Message) {
@@ -18,6 +18,7 @@ func CreateBook(client mqtt.Client, msg mqtt.Message) {
 	}
 	database.ConcreteBookRepo.CreateBook(book)
 }
+
 func UpdateBook(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Mensagem recebida no tópico book/update: %s\n", msg.Payload())
 	var book database.Book
@@ -28,6 +29,7 @@ func UpdateBook(client mqtt.Client, msg mqtt.Message) {
 	}
 	database.ConcreteBookRepo.EditaLivro(book)
 }
+
 func RemoveBook(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Mensagem recebida no tópico book/remove: %s\n", msg.Payload())
 	var book database.Book

@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"library-manager/cad-server/internal/server"
-	api "library-manager/shared/api"
+	api_cad "library-manager/shared/api/cad"
 	"library-manager/shared/database"
 	"library-manager/shared/queue"
 
@@ -40,7 +40,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	api.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
+	api_cad.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
 
 	go func() {
 		<-ch

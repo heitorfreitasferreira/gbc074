@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"library-manager/cad-client/internal/handlers"
 	"log"
+	"os"
 
 	api "library-manager/shared/api/cad"
 
@@ -30,7 +32,10 @@ func main() {
 		handler := handlers.Choose()
 
 		if err := handler(client); err != nil {
-			log.Fatalf("Erro ao executar handler: %v", err)
+			fmt.Printf("Erro ao executar handler: %v", err)
+			fmt.Println("Pressione ENTER...")
+
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
 		}
 	}
 }

@@ -43,27 +43,27 @@ func Choose() MyHandler {
 		{
 			id:      6,
 			desc:    "Novo Livro",
-			handler: nil,
+			handler: addBook,
 		},
 		{
 			id:      7,
 			desc:    "Edita Livro",
-			handler: nil,
+			handler: editBook,
 		},
 		{
 			id:      8,
 			desc:    "Remove Livro",
-			handler: nil,
+			handler: removeBook,
 		},
 		{
 			id:      9,
 			desc:    "Obtem Livro",
-			handler: nil,
+			handler: getBook,
 		},
 		{
 			id:      10,
 			desc:    "Obtem Todos Livros",
-			handler: nil,
+			handler: getAllBooks,
 		},
 	}
 	fmt.Print("\033[H\033[2J")

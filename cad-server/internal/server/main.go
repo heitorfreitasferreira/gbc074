@@ -129,7 +129,6 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api.Usuario) (*api.S
 	return &api.Status{Status: status.Status}, nil
 }
 
-// RemoveUsuario: deleta um usuário pelo CPF
 func (s *Server) RemoveUsuario(ctx context.Context, request *api.Identificador) (*api.Status, error) {
 	status, err := s.userRepo.RemoveUsuario(utils.CPF(request.Id))
 	if err != nil {
@@ -165,6 +164,7 @@ func (s *Server) NovoLivro(ctx context.Context, livro *api.Livro) (*api.Status, 
 		Isbn:   utils.ISBN(livro.Isbn),
 		Titulo: livro.Titulo,
 		Autor:  livro.Autor,
+		Total:  livro.Total,
 	}
 	if !book.Isbn.Validate() {
 		return &api.Status{Status: 1, Msg: "ISBN inválido"}, nil
@@ -200,9 +200,10 @@ func (s *Server) ObtemLivro(ctx context.Context, request *api.Identificador) (*a
 	}
 
 	return &api.Livro{
-		Isbn:   request.Id,
+		Isbn:   string(book.Isbn),
 		Titulo: book.Titulo,
 		Autor:  book.Autor,
+		Total:  book.Total,
 	}, nil
 }
 
@@ -221,11 +222,12 @@ func (s *Server) ObtemTodosLivros(request *api.Vazia, stream api.PortalCadastro_
 	return nil
 }
 
-func (s *Server) EditarLivro(ctx context.Context, livro *api.Livro) (*api.Status, error) {
+func (s *Server) EditaLivro(ctx context.Context, livro *api.Livro) (*api.Status, error) {
 	book := database.Book{
 		Isbn:   utils.ISBN(livro.Isbn),
 		Titulo: livro.Titulo,
 		Autor:  livro.Autor,
+		Total:  livro.Total,
 	}
 	// Validar ISBN aqui, se necessário
 	// if !book.Isbn.Validate() { ... }
