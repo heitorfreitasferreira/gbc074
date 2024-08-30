@@ -43,14 +43,6 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 		}
 
 		// TODO: Verificar se usuário está bloqueado
-		database.ConcreteBookRepo.EditaLivro(
-			database.Book{
-				Isbn:   utils.ISBN(userBook.BookISNB),
-				Total:  book.Total - 1,
-				Titulo: book.Titulo,
-				Autor:  book.Autor,
-			},
-		)
 		database.ConcreteUserBookRepo.LoanBook(userBook)
 	},
 	string(handlers.BookReturnTopic): func(client mqtt.Client, msg mqtt.Message) {
@@ -58,6 +50,8 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 	},
 	string(handlers.BookListBorrowedTopic): func(client mqtt.Client, msg mqtt.Message) {
 		handlers.LogTopicMessage(handlers.BookListBorrowedTopic, msg.Payload())
+
+
 	},
 	string(handlers.BookListMissingTopic): func(client mqtt.Client, msg mqtt.Message) {
 		handlers.LogTopicMessage(handlers.BookListMissingTopic, msg.Payload())
