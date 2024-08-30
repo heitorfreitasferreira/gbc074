@@ -26,7 +26,7 @@ func createUser(client api.PortalCadastroClient) error {
 		Cpf:  cpf,
 	}
 	res, err := client.NovoUsuario(ctx, user)
-	if err != nil {
+	if err != nil || res.Status == 1 {
 		return fmt.Errorf("erro ao criar usuario: %v", err)
 	}
 	fmt.Printf("Usuário %v criado com sucesso: %v\n", user, res)
@@ -118,7 +118,7 @@ func removeUser(client api.PortalCadastroClient) error {
 	defer cancel()
 
 	res, err := client.RemoveUsuario(ctx, &api.Identificador{Id: cpf})
-	if err != nil {
+	if err != nil || res.Status == 1 {
 		return fmt.Errorf("erro ao remover usuario: %v", err)
 	}
 	fmt.Printf("Usuário %v removido com sucesso: %v\n", cpf, res)

@@ -38,7 +38,7 @@ func addBook(client api_cad.PortalCadastroClient) error {
 	defer cancel()
 
 	res, err := client.NovoLivro(ctx, book)
-	if err != nil {
+	if err != nil || res.Status == 1 {
 		return fmt.Errorf("erro ao adicionar livro: %v", err)
 	}
 	fmt.Printf("Livro %s adicionado com sucesso: %v\n", book.Titulo, res)
