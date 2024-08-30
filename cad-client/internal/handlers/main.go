@@ -9,7 +9,7 @@ import (
 
 type MyHandler func(api.PortalCadastroClient) error
 
-func Choose() MyHandler {
+func Choose(host, port string) MyHandler {
 	options := []struct {
 		id      int
 		desc    string
@@ -67,6 +67,7 @@ func Choose() MyHandler {
 		},
 	}
 	fmt.Print("\033[H\033[2J")
+	fmt.Printf("Cliente cadastro %d conectado ao servidor %s:%s\n\n", os.Getpid(), host, port)
 	for _, opt := range options {
 		fmt.Printf("%d - %s\n", opt.id, opt.desc)
 	}
