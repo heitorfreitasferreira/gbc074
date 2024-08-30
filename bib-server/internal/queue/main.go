@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 
+	"library-manager/shared/database"
+	"library-manager/shared/utils"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"library-manager/bib-server/internal/database"
 )
 
 const qos byte = 2
@@ -40,7 +42,7 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 			return
 		}
 
-		book, err := database.ConcreteBookRepo.ObtemLivro(database.ISBN(userBook.BookISNB))
+		book, err := database.ConcreteBookRepo.ObtemLivro(utils.ISBN(userBook.BookISNB))
 		if err != nil {
 			log.Printf("Livro inexistente: %v", err)
 			return
@@ -50,7 +52,7 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 			return
 		}
 
-		_, err = database.ConcreteUserRepo.ObtemUsuario(database.CPF(userBook.UserId))
+		_, err = database.ConcreteUserRepo.ObtemUsuario(utils.CPF(userBook.UserId))
 		if err != nil {
 			log.Printf("Usuário inexistente: %v", err)
 			return
@@ -59,7 +61,7 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 		// TODO: Verificar se usuário está bloqueado
 		database.ConcreteBookRepo.EditaLivro(
 			database.Book{
-				Isbn:   database.ISBN(userBook.BookISNB),
+				Isbn:   utils.ISBN(userBook.BookISNB),
 				Total:  book.Total - 1,
 				Titulo: book.Titulo,
 				Autor:  book.Autor,

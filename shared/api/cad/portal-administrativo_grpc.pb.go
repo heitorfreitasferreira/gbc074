@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: api/portal-administrativo.proto
 
-package api
+package api_cad
 
 import (
 	context "context"

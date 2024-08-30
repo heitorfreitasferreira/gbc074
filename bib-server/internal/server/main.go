@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"log"
 
+	api "library-manager/shared/api/bib"
+	"library-manager/shared/database"
+	"library-manager/shared/queue"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"library-manager/bib-server/api"
-	"library-manager/bib-server/internal/database"
-	"library-manager/bib-server/internal/queue"
 )
 
 type Server struct {
-	br_ufu_facom_gbc074_projeto_biblioteca.UnimplementedPortalBibliotecaServer
+	api.UnimplementedPortalBibliotecaServer
 
 	userRepo database.UserRepo
 	bookRepo database.BookRepo
@@ -51,13 +52,13 @@ func (s *Server) publishMessage(topic queue.Topic, message []byte) error {
 	return errors.New("Server.publishMessage: " + errorMessage)
 }
 
-func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_RealizaEmprestimoServer) error {
+func (s *Server) RealizaEmprestimo(stream api.PortalBiblioteca_RealizaEmprestimoServer) error {
 	data, err := stream.Recv()
 	log.Printf("Recebendo dados %v", data)
 
 	if err != nil {
 		return stream.SendAndClose(
-			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+			&api.Status{
 				Status: 1,
 				Msg:    "Erro ao receber dados",
 			},
@@ -66,7 +67,7 @@ func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca
 
 	if data.Usuario == nil || data.Livro == nil {
 		return stream.SendAndClose(
-			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+			&api.Status{
 				Status: 1,
 				Msg:    "Dados inválidos",
 			},
@@ -83,7 +84,7 @@ func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca
 		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
 		log.Println(errMsg)
 		return stream.SendAndClose(
-			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+			&api.Status{
 				Status: 1,
 				Msg:    errMsg,
 			},
@@ -93,7 +94,7 @@ func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca
 	err = s.publishMessage(queue.BookLoanTopic, jsonData)
 	if err != nil {
 		return stream.SendAndClose(
-			&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+			&api.Status{
 				Status: 1,
 				Msg:    err.Error(),
 			},
@@ -101,37 +102,37 @@ func (s *Server) RealizaEmprestimo(stream br_ufu_facom_gbc074_projeto_biblioteca
 	}
 
 	return stream.SendAndClose(
-		&br_ufu_facom_gbc074_projeto_biblioteca.Status{
+		&api.Status{
 			Status: 0,
 			Msg:    "Empréstimo realizado",
 		},
 	)
 }
 
-func (s *Server) RealizaDevolucao(stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_RealizaDevolucaoServer) error {
+func (s *Server) RealizaDevolucao(stream api.PortalBiblioteca_RealizaDevolucaoServer) error {
 	return nil
 }
 
-func (s *Server) BloqueiaUsuarios(ctx context.Context, req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia) (*br_ufu_facom_gbc074_projeto_biblioteca.Status, error) {
+func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api.Vazia) (*api.Status, error) {
 	return nil, nil
 }
 
-func (s *Server) LiberaUsuarios(ctx context.Context, req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia) (*br_ufu_facom_gbc074_projeto_biblioteca.Status, error) {
+func (s *Server) LiberaUsuarios(ctx context.Context, req *api.Vazia) (*api.Status, error) {
 	return nil, nil
 }
 
-func (s *Server) ListaUsuariosBloqueados(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
+func (s *Server) ListaUsuariosBloqueados(req *api.Vazia, stream api.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
 	return nil
 }
 
-func (s *Server) ListaLivrosEmprestados(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
+func (s *Server) ListaLivrosEmprestados(req *api.Vazia, stream api.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
 	return nil
 }
 
-func (s *Server) ListaLivrosEmFalta(req *br_ufu_facom_gbc074_projeto_biblioteca.Vazia, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
+func (s *Server) ListaLivrosEmFalta(req *api.Vazia, stream api.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
 	return nil
 }
 
-func (s *Server) PesquisaLivro(req *br_ufu_facom_gbc074_projeto_biblioteca.Criterio, stream br_ufu_facom_gbc074_projeto_biblioteca.PortalBiblioteca_PesquisaLivroServer) error {
+func (s *Server) PesquisaLivro(req *api.Criterio, stream api.PortalBiblioteca_PesquisaLivroServer) error {
 	return nil
 }

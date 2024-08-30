@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"log"
 
-	"library-manager/cad-server/api"
-	"library-manager/cad-server/internal/database"
-	"library-manager/cad-server/internal/utils"
+	api "library-manager/shared/api/cad"
+	"library-manager/shared/database"
+	"library-manager/shared/utils"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"library-manager/cad-client/api"
 	"library-manager/cad-client/internal/handlers"
 	"log"
+
+	api "library-manager/shared/api/cad"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

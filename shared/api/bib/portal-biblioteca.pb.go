@@ -4,7 +4,7 @@
 // 	protoc        v3.19.6
 // source: api/portal-biblioteca.proto
 
-package br_ufu_facom_gbc074_projeto_biblioteca
+package api_bib
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

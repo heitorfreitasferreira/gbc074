@@ -9,10 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/bib-server/api"
-	"library-manager/bib-server/internal/database"
-	"library-manager/bib-server/internal/queue"
+	api "library-manager/shared/api/bib"
+
 	"library-manager/bib-server/internal/server"
+	"library-manager/shared/database"
+	"library-manager/shared/queue"
 
 	"google.golang.org/grpc"
 )
@@ -44,7 +45,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	// Register server handlers
-	br_ufu_facom_gbc074_projeto_biblioteca.RegisterPortalBibliotecaServer(
+	api.RegisterPortalBibliotecaServer(
 		grpcServer,
 		server.NewServer(
 			database.ConcreteUserRepo,

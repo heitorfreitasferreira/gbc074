@@ -5,10 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"library-manager/cad-client/api"
 	"os"
 	"text/tabwriter"
 	"time"
+
+	api "library-manager/shared/api/cad"
 )
 
 func createUser(client api.PortalCadastroClient) error {

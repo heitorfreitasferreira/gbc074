@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/cad-server/api"
-	"library-manager/cad-server/internal/database"
-	"library-manager/cad-server/internal/queue"
 	"library-manager/cad-server/internal/server"
+	api "library-manager/shared/api"
+	"library-manager/shared/database"
+	"library-manager/shared/queue"
 
 	"google.golang.org/grpc"
 )

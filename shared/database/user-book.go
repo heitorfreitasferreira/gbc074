@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	api "library-manager/bib-server/api"
+	api "library-manager/shared/api/bib"
 )
 
 type UserBook struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"library-manager/cad-server/api"
-	"library-manager/cad-server/internal/utils"
+	api "library-manager/shared/api/cad"
+	"library-manager/shared/utils"
 )
 
 var ConcreteBookRepo BookRepo = NewInMemoryBookRepo()

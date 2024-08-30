@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"library-manager/cad-client/api"
 	"os"
+
+	api "library-manager/shared/api/cad"
 )
 
 type MyHandler func(api.PortalCadastroClient) error
