@@ -12,3 +12,19 @@ const (
 	UserFreeTopic         UserBookTopic = "user/free"
 	UserListBlockedTopic  UserBookTopic = "user/list-blocked"
 )
+
+type BookTopic string
+
+const (
+	BookCreateTopic BookTopic = "book/create"
+	BookRemoveTopic BookTopic = "book/remove"
+	BookUpdateTopic BookTopic = "book/update"
+)
+
+type UserTopic string
+
+const (
+	UserCreateTopic UserTopic = "user/create"
+	UserUpdateTopic UserTopic = "user/update"
+	UserRemoveTopic UserTopic = "user/remove"
+)

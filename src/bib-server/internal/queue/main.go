@@ -19,6 +19,12 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 	string(handlers.UserBlockTopic):        handlers.UserBlockHandler,
 	string(handlers.UserFreeTopic):         handlers.UserFreeHandler,
 	string(handlers.UserListBlockedTopic):  handlers.UserListBlockedHandler,
+	string(handlers.BookCreateTopic):       handlers.BookCreateHandler,
+	string(handlers.BookUpdateTopic):       handlers.BookUpdateHandler,
+	string(handlers.BookRemoveTopic):       handlers.BookRemoveHandler,
+	string(handlers.UserCreateTopic):       handlers.UserCreateHandler,
+	string(handlers.UserUpdateTopic):       handlers.UserUpdateHandler,
+	string(handlers.UserRemoveTopic):       handlers.UserRemoveHandler,
 }
 
 var onConnect mqtt.OnConnectHandler = func(client mqtt.Client) {

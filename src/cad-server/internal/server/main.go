@@ -33,16 +33,13 @@ func NewServer(userRepo database.UserRepo, mqttClient mqtt.Client, bookRepo data
 }
 
 func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
-	user := database.User{
-		Cpf:  utils.CPF(usuario.Cpf),
-		Nome: usuario.Nome,
-	}
-	if !user.Cpf.Validate() {
+	cpf := utils.CPF(usuario.Cpf)
+	if !cpf.Validate() {
 		log.Printf("CPF inválido")
 		return &api_cad.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
-	jsonData, err := json.Marshal(user)
+	jsonData, err := json.Marshal(usuario)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
@@ -109,7 +106,7 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*a
 	}
 
 	// Publicar mensagem de atualização no tópico MQTT
-	jsonData, err := json.Marshal(user)
+	jsonData, err := json.Marshal(usuario)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
@@ -160,17 +157,12 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api_cad.Identificad
 }
 
 func (s *Server) NovoLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad.Status, error) {
-	book := database.Book{
-		Isbn:   utils.ISBN(livro.Isbn),
-		Titulo: livro.Titulo,
-		Autor:  livro.Autor,
-		Total:  livro.Total,
-	}
-	if !book.Isbn.Validate() {
+	isbn := utils.ISBN(livro.Isbn)
+	if !isbn.Validate() {
 		return &api_cad.Status{Status: 1, Msg: "ISBN inválido"}, nil
 	}
 
-	jsonData, err := json.Marshal(book)
+	jsonData, err := json.Marshal(livro)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
@@ -238,7 +230,7 @@ func (s *Server) EditaLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad
 	}
 
 	// Publicar mensagem de atualização no tópico MQTT
-	jsonData, err := json.Marshal(book)
+	jsonData, err := json.Marshal(livro)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
