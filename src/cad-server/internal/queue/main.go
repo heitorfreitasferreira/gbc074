@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"library-manager/shared/queue/handlers"
+	"library-manager/cad-server/internal/queue/handlers"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

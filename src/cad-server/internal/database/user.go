@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"library-manager/cad-server/internal/utils"
 	"library-manager/shared/api/cad"
-	"library-manager/shared/utils"
 )
 
 var ConcreteUserRepo UserRepo = NewInMemoryUserRepo()
