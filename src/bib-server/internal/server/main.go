@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"library-manager/bib-server/internal/database"
-	"library-manager/bib-server/internal/queue"
+	"library-manager/bib-server/internal/queue/handlers"
 	"library-manager/shared/api/bib"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -37,7 +37,7 @@ func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, userBookR
 
 var qos byte = 2
 
-func (s *Server) publishMessage(topic queue.UserBookTopic, message []byte) error {
+func (s *Server) publishMessage(topic handlers.UserBookTopic, message []byte) error {
 	var errorMessage string
 
 	if s.mqttClient.IsConnected() {
@@ -56,7 +56,7 @@ func (s *Server) publishMessage(topic queue.UserBookTopic, message []byte) error
 	return errors.New("Server.publishMessage: " + errorMessage)
 }
 
-func (s *Server) publishWithEmptyMessage(topic queue.UserBookTopic) error {
+func (s *Server) publishWithEmptyMessage(topic handlers.UserBookTopic) error {
 	var errorMessage string
 
 	if s.mqttClient.IsConnected() {
@@ -110,7 +110,7 @@ func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmpres
 		)
 	}
 
-	err = s.publishMessage(queue.BookLoanTopic, jsonData)
+	err = s.publishMessage(handlers.BookLoanTopic, jsonData)
 	if err != nil {
 		return stream.SendAndClose(
 			&api_bib.Status{
@@ -163,7 +163,7 @@ func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevoluc
 		)
 	}
 
-	err = s.publishMessage(queue.BookReturnTopic, jsonData)
+	err = s.publishMessage(handlers.BookReturnTopic, jsonData)
 	if err != nil {
 		return stream.SendAndClose(
 			&api_bib.Status{
@@ -183,7 +183,7 @@ func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevoluc
 }
 
 func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_bib.Status, error) {
-	err := s.publishWithEmptyMessage(queue.UserBlockTopic)
+	err := s.publishWithEmptyMessage(handlers.UserBlockTopic)
 	if err != nil {
 		return &api_bib.Status{
 			Status: 1,
@@ -198,7 +198,7 @@ func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api
 }
 
 func (s *Server) LiberaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_bib.Status, error) {
-	err := s.publishWithEmptyMessage(queue.UserFreeTopic)
+	err := s.publishWithEmptyMessage(handlers.UserFreeTopic)
 	if err != nil {
 		return &api_bib.Status{
 			Status: 1,
