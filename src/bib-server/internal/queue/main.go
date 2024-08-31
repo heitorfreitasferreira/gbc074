@@ -6,19 +6,34 @@ import (
 	"fmt"
 	"log"
 
-	"library-manager/shared/database"
-	"library-manager/shared/queue/handlers"
-	"library-manager/shared/utils"
+	"library-manager/bib-server/internal/database"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 const qos byte = 2
 
+type UserBookTopic string
+
+const (
+	BookLoanTopic         UserBookTopic = "book/loan"
+	BookReturnTopic       UserBookTopic = "book/return"
+	BookListBorrowedTopic UserBookTopic = "book/list-borrowed"
+	BookListMissingTopic  UserBookTopic = "book/list-missing"
+	BookSearchTopic       UserBookTopic = "book/search"
+	UserBlockTopic        UserBookTopic = "user/block"
+	UserFreeTopic         UserBookTopic = "user/free"
+	UserListBlockedTopic  UserBookTopic = "user/list-blocked"
+)
+
+func logTopicMessage(topic UserBookTopic, msg []byte) {
+	log.Printf("Mensagem recebida no tópico %s: %s\n", topic, msg)
+}
+
 var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[string]func(client mqtt.Client, msg mqtt.Message){
-	string(handlers.BookLoanTopic): func(client mqtt.Client, msg mqtt.Message) {
+	string(BookLoanTopic): func(client mqtt.Client, msg mqtt.Message) {
 		payload := msg.Payload()
-		handlers.LogTopicMessage(handlers.BookLoanTopic, payload)
+		logTopicMessage(BookLoanTopic, payload)
 		var userBook database.UserBook
 		err := json.Unmarshal(payload, &userBook)
 		if err != nil {
@@ -26,47 +41,50 @@ var topicHandlers map[string]func(client mqtt.Client, msg mqtt.Message) = map[st
 			return
 		}
 
-		book, err := database.ConcreteBookRepo.ObtemLivro(utils.ISBN(userBook.BookISNB))
+		book, err := database.ConcreteBookRepo.GetById(userBook.BookISBN)
 		if err != nil {
 			log.Printf("Livro inexistente: %v", err)
 			return
 		}
-		if book.Total == 0 {
+		if book.Total == 0 || book.Remaining < 1 {
 			log.Printf("Livro sem exemplares disponíveis")
 			return
 		}
 
-		_, err = database.ConcreteUserRepo.ObtemUsuario(utils.CPF(userBook.UserId))
+		user, err := database.ConcreteUserRepo.GetById(userBook.UserCPF)
 		if err != nil {
 			log.Printf("Usuário inexistente: %v", err)
 			return
 		}
 
-		// TODO: Verificar se usuário está bloqueado
-		database.ConcreteUserBookRepo.LoanBook(userBook)
-	},
-	string(handlers.BookReturnTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.BookReturnTopic, msg.Payload())
-	},
-	string(handlers.BookListBorrowedTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.BookListBorrowedTopic, msg.Payload())
+		if user.Blocked {
+			log.Printf("Usuário bloqueado")
+			return
+		}
 
+		database.ConcreteUserBookRepo.Create(userBook)
+	},
+	string(BookReturnTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookReturnTopic, msg.Payload())
+	},
+	string(BookListBorrowedTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookListBorrowedTopic, msg.Payload())
 
 	},
-	string(handlers.BookListMissingTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.BookListMissingTopic, msg.Payload())
+	string(BookListMissingTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookListMissingTopic, msg.Payload())
 	},
-	string(handlers.BookSearchTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.BookSearchTopic, msg.Payload())
+	string(BookSearchTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(BookSearchTopic, msg.Payload())
 	},
-	string(handlers.UserBlockTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.UserBlockTopic, msg.Payload())
+	string(UserBlockTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserBlockTopic, msg.Payload())
 	},
-	string(handlers.UserFreeTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.UserFreeTopic, msg.Payload())
+	string(UserFreeTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserFreeTopic, msg.Payload())
 	},
-	string(handlers.UserListBlockedTopic): func(client mqtt.Client, msg mqtt.Message) {
-		handlers.LogTopicMessage(handlers.UserListBlockedTopic, msg.Payload())
+	string(UserListBlockedTopic): func(client mqtt.Client, msg mqtt.Message) {
+		logTopicMessage(UserListBlockedTopic, msg.Payload())
 	},
 }
 
