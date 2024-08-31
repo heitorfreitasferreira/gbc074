@@ -9,11 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/shared/api/bib"
-
+	"library-manager/bib-server/internal/api"
+	"library-manager/bib-server/internal/database"
+	"library-manager/bib-server/internal/queue"
 	"library-manager/bib-server/internal/server"
-	"library-manager/shared/database"
-	"library-manager/shared/queue"
 
 	"google.golang.org/grpc"
 )
@@ -50,6 +49,7 @@ func main() {
 		server.NewServer(
 			database.ConcreteUserRepo,
 			database.ConcreteBookRepo,
+			database.ConcreteUserBookRepo,
 			mqttClient,
 		),
 	)
