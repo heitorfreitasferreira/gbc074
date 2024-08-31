@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"log"
 
+	internal_db "library-manager/bib-server/internal/database"
 	"library-manager/shared/api/bib"
-	"library-manager/shared/database"
+	shared_db "library-manager/shared/database"
 	"library-manager/shared/queue/handlers"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -17,13 +18,13 @@ import (
 type Server struct {
 	api_bib.UnimplementedPortalBibliotecaServer
 
-	userRepo database.UserRepo
-	bookRepo database.BookRepo
+	userRepo shared_db.UserRepo
+	bookRepo shared_db.BookRepo
 
 	mqttClient mqtt.Client
 }
 
-func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, mqttClient mqtt.Client) *Server {
+func NewServer(userRepo shared_db.UserRepo, bookRepo shared_db.BookRepo, mqttClient mqtt.Client) *Server {
 	return &Server{
 		userRepo:   userRepo,
 		bookRepo:   bookRepo,
@@ -74,7 +75,7 @@ func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmpres
 		)
 	}
 
-	userBook := database.UserBook{
+	userBook := internal_db.UserBook{
 		UserId:   data.Usuario.Id,
 		BookISNB: data.Livro.Id,
 	}
