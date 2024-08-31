@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
+	"time"
 
 	"library-manager/bib-server/internal/database"
 	"library-manager/bib-server/internal/queue"
@@ -24,7 +26,7 @@ type Server struct {
 	mqttClient mqtt.Client
 }
 
-func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, userBookRepo database.UserBookRepo, mqttClient mqtt.Client) *Server {
+func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, userBookRepo database.UserBookRepo, mqttClient mqtt.Client) api_bib.PortalBibliotecaServer {
 	return &Server{
 		userRepo:     userRepo,
 		bookRepo:     bookRepo,
@@ -58,7 +60,7 @@ func (s *Server) publishWithEmptyMessage(topic queue.UserBookTopic) error {
 	var errorMessage string
 
 	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish(string(topic), qos, false, nil)
+		token := s.mqttClient.Publish(string(topic), qos, false, "")
 		token.Wait()
 		if token.Error() == nil {
 			log.Printf("Mensagem vazia publicada no tópico %v", topic)
@@ -184,7 +186,7 @@ func (s *Server) BloqueiaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api
 	err := s.publishWithEmptyMessage(queue.UserBlockTopic)
 	if err != nil {
 		return &api_bib.Status{
-			Status: 0,
+			Status: 1,
 			Msg:    err.Error(),
 		}, err
 	}
@@ -199,7 +201,7 @@ func (s *Server) LiberaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_b
 	err := s.publishWithEmptyMessage(queue.UserFreeTopic)
 	if err != nil {
 		return &api_bib.Status{
-			Status: 0,
+			Status: 1,
 			Msg:    err.Error(),
 		}, err
 	}
@@ -212,18 +214,120 @@ func (s *Server) LiberaUsuarios(ctx context.Context, req *api_bib.Vazia) (*api_b
 }
 
 func (s *Server) ListaUsuariosBloqueados(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaUsuariosBloqueadosServer) error {
-	// Get books if loaned more than 10 seconds ago
+	userList := s.userRepo.GetAll()
+
+	currTime := time.Now().UnixMilli()
+	for _, user := range userList {
+		if user.Blocked {
+			userLoans := s.userBookRepo.GetUserLoans(user.CPF)
+			overdueLoanBooks := make([]*api_bib.Livro, 0)
+			for _, loan := range userLoans {
+				// Verifica se o empréstimo tem mais de 10 segundos
+				if (currTime - loan.Timestamp) > 10*1000 {
+					book, err := s.bookRepo.GetById(loan.BookISBN)
+					if err != nil {
+						stream.SendMsg(err)
+						return err
+					}
+
+					protoBook := database.BookToProto(book)
+					overdueLoanBooks = append(overdueLoanBooks, &protoBook)
+				}
+			}
+
+			protoUser := database.UserToProto(user)
+
+			blockedUser := &api_bib.UsuarioBloqueado{
+				Usuario: &protoUser,
+				Livros:  overdueLoanBooks,
+			}
+
+			stream.Send(blockedUser)
+		}
+	}
+
 	return nil
 }
 
 func (s *Server) ListaLivrosEmprestados(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaLivrosEmprestadosServer) error {
+	userList := s.userRepo.GetAll()
+
+	for _, user := range userList {
+		userLoans := s.userBookRepo.GetUserLoans(user.CPF)
+		for _, loan := range userLoans {
+			book, err := s.bookRepo.GetById(loan.BookISBN)
+			if err != nil {
+				stream.SendMsg(err)
+				return err
+			}
+			protoBook := database.BookToProto(book)
+
+			stream.Send(&protoBook)
+		}
+
+	}
+
 	return nil
 }
 
 func (s *Server) ListaLivrosEmFalta(req *api_bib.Vazia, stream api_bib.PortalBiblioteca_ListaLivrosEmFaltaServer) error {
+	bookList := s.bookRepo.GetAll()
+
+	for _, book := range bookList {
+		if book.Remaining == 0 {
+			protoBook := database.BookToProto(book)
+			stream.Send(&protoBook)
+		}
+	}
+
 	return nil
 }
 
 func (s *Server) PesquisaLivro(req *api_bib.Criterio, stream api_bib.PortalBiblioteca_PesquisaLivroServer) error {
+	log.Printf("Validando critério: %v", req.Criterio)
+	operatorValidator := regexp.MustCompile(`&|\|`)
+	searchParts := operatorValidator.Split(req.Criterio, 2)
+	operator := operatorValidator.FindString(req.Criterio)
+
+	log.Printf("Partes da pesquisa: %v", searchParts)
+
+	bookList := s.bookRepo.GetAll()
+	validBookList := make([]database.Book, 0)
+
+	titleQuery := regexp.MustCompile(`titulo:(.+)`)
+	authorQuery := regexp.MustCompile(`autor:(.+)`)
+	isbnQuery := regexp.MustCompile(`isbn:(.+)`)
+
+	matchesQuery := func(book database.Book, query string) bool {
+		if titleQuery.MatchString(query) {
+			return titleQuery.FindStringSubmatch(query)[1] == book.Title
+		}
+		if authorQuery.MatchString(query) {
+			return authorQuery.FindStringSubmatch(query)[1] == book.Author
+		}
+		if isbnQuery.MatchString(query) {
+			return isbnQuery.FindStringSubmatch(query)[1] == book.ISBN
+		}
+		return false
+	}
+
+	for _, book := range bookList {
+		match1 := matchesQuery(book, searchParts[0])
+		match2 := len(searchParts) > 1 && matchesQuery(book, searchParts[1])
+
+		if (operator == "&" && match1 && match2) || (operator == "|" && (match1 || match2)) || (operator == "" && match1) {
+			validBookList = append(validBookList, book)
+		}
+	}
+
+	for _, book := range validBookList {
+		protoBook := database.BookToProto(book)
+		if err := stream.Send(&protoBook); err != nil {
+			stream.Send(nil)
+			return err
+		}
+	}
+
+	stream.Send(nil)
 	return nil
 }

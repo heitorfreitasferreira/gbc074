@@ -1,4 +1,4 @@
-root = "."
+root = "./bib-server/"
 testdata_dir = "testdata"
 tmp_dir = "../tmp"
 
