@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/bib-server/internal/api"
 	"library-manager/bib-server/internal/database"
 	"library-manager/bib-server/internal/queue"
 	"library-manager/bib-server/internal/server"
+	"library-manager/shared/api/bib"
 
 	"google.golang.org/grpc"
 )

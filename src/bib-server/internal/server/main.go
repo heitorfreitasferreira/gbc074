@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
-	"library-manager/bib-server/internal/api"
 	"library-manager/bib-server/internal/database"
 	"library-manager/bib-server/internal/queue"
+	"library-manager/shared/api/bib"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
