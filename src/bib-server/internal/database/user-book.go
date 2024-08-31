@@ -48,6 +48,7 @@ type UserBookRepo interface {
 	Delete(UserBook) error
 	GetAll() []UserBook
 	GetUserLoans(string) []LoanBookAndTime
+	RemoveUserLoan(UserBook) error
 }
 
 type LoanBookAndTime struct {
@@ -120,4 +121,24 @@ func (repo *InMemoryUserBookRepo) GetUserLoans(userId string) []LoanBookAndTime 
 	defer repo.mu.RUnlock()
 
 	return repo.data[userId]
+}
+
+func (repo *InMemoryUserBookRepo) RemoveUserLoan(userBook UserBook) error {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	userLoans, err := repo.data[userBook.UserCPF]
+	if err {
+		return ErrUserNotFound
+	}
+
+	for i, loan := range userLoans {
+		if loan.BookISBN == userBook.BookISBN {
+			repo.data[userBook.UserCPF] = append(userLoans[:i], userLoans[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrUserDidNotLoanBook
+
 }

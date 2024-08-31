@@ -150,7 +150,7 @@ func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevoluc
 		)
 	}
 
-	userBook := database.NewUserBook(data.Usuario.Id, data.Livro.Id)
+	userBook := database.ProtoToUserBook(data)
 	jsonData, err := json.Marshal(userBook)
 	if err != nil {
 		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
