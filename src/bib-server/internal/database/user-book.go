@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"library-manager/bib-server/internal/api"
+	"library-manager/shared/api/bib"
 )
 
 var ConcreteUserBookRepo UserBookRepo = NewInMemoryUserBookRepo()
