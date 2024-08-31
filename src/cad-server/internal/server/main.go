@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"log"
 
-	api "library-manager/shared/api/cad"
-	"library-manager/shared/database"
-	"library-manager/shared/utils"
+	"library-manager/cad-server/internal/database"
+	"library-manager/cad-server/internal/utils"
+	"library-manager/shared/api/cad"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -15,7 +15,7 @@ import (
 var qos byte = 2
 
 type Server struct {
-	api.UnimplementedPortalCadastroServer
+	api_cad.UnimplementedPortalCadastroServer
 
 	userRepo database.UserRepo
 	bookRepo database.BookRepo
@@ -32,20 +32,20 @@ func NewServer(userRepo database.UserRepo, mqttClient mqtt.Client, bookRepo data
 	}
 }
 
-func (s *Server) NovoUsuario(ctx context.Context, usuario *api.Usuario) (*api.Status, error) {
+func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
 	user := database.User{
 		Cpf:  utils.CPF(usuario.Cpf),
 		Nome: usuario.Nome,
 	}
 	if !user.Cpf.Validate() {
 		log.Printf("CPF inválido")
-		return &api.Status{Status: 1, Msg: "CPF inválido"}, nil
+		return &api_cad.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
 	jsonData, err := json.Marshal(user)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
 	if s.mqttClient.IsConnected() {
@@ -53,31 +53,31 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api.Usuario) (*api.St
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		} else {
 			log.Println("Mensagem publicada no tópico user/create")
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
-	return &api.Status{Status: 0}, nil
+	return &api_cad.Status{Status: 0}, nil
 }
 
-func (s *Server) ObtemUsuario(ctx context.Context, request *api.Identificador) (*api.Usuario, error) {
+func (s *Server) ObtemUsuario(ctx context.Context, request *api_cad.Identificador) (*api_cad.Usuario, error) {
 	user, err := s.userRepo.ObtemUsuario(utils.CPF(request.Id))
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.Usuario{
+	return &api_cad.Usuario{
 		Cpf:  request.Id,
 		Nome: user.Nome,
 	}, nil
 }
 
-func (s *Server) ObtemTodosUsuarios(request *api.Vazia, stream api.PortalCadastro_ObtemTodosUsuariosServer) error {
+func (s *Server) ObtemTodosUsuarios(request *api_cad.Vazia, stream api_cad.PortalCadastro_ObtemTodosUsuariosServer) error {
 	users, err := s.userRepo.ObtemTodosUsuarios()
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func (s *Server) ObtemTodosUsuarios(request *api.Vazia, stream api.PortalCadastr
 	return nil
 }
 
-func (s *Server) EditaUsuario(ctx context.Context, usuario *api.Usuario) (*api.Status, error) {
+func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
 	log.Default().Printf("Editando usuário %s", usuario.Cpf)
 	user := database.User{
 		Cpf:  utils.CPF(usuario.Cpf),
@@ -100,39 +100,39 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api.Usuario) (*api.S
 	}
 	if !user.Cpf.Validate() {
 		log.Printf("CPF inválido")
-		return &api.Status{Status: 1, Msg: "CPF inválido"}, nil
+		return &api_cad.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
 	status, err := s.userRepo.EditaUsuario(user)
 	if err != nil {
-		return &api.Status{Status: 1, Msg: "Erro ao atualizar usuário"}, err
+		return &api_cad.Status{Status: 1, Msg: "Erro ao atualizar usuário"}, err
 	}
 
 	// Publicar mensagem de atualização no tópico MQTT
 	jsonData, err := json.Marshal(user)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 	if s.mqttClient.IsConnected() {
 		token := s.mqttClient.Publish("user/update", qos, false, jsonData)
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
 
-	return &api.Status{Status: status.Status}, nil
+	return &api_cad.Status{Status: status.Status}, nil
 }
 
-func (s *Server) RemoveUsuario(ctx context.Context, request *api.Identificador) (*api.Status, error) {
+func (s *Server) RemoveUsuario(ctx context.Context, request *api_cad.Identificador) (*api_cad.Status, error) {
 	status, err := s.userRepo.RemoveUsuario(utils.CPF(request.Id))
 	if err != nil {
-		return &api.Status{
+		return &api_cad.Status{
 			Status: status.Status,
 			Msg:    err.Error(),
 		}, err
@@ -142,7 +142,7 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api.Identificador) 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
 	if s.mqttClient.IsConnected() {
@@ -150,16 +150,16 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api.Identificador) 
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
-	return &api.Status{Status: status.Status, Msg: status.Msg}, nil
+	return &api_cad.Status{Status: status.Status, Msg: status.Msg}, nil
 }
 
-func (s *Server) NovoLivro(ctx context.Context, livro *api.Livro) (*api.Status, error) {
+func (s *Server) NovoLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad.Status, error) {
 	book := database.Book{
 		Isbn:   utils.ISBN(livro.Isbn),
 		Titulo: livro.Titulo,
@@ -167,13 +167,13 @@ func (s *Server) NovoLivro(ctx context.Context, livro *api.Livro) (*api.Status, 
 		Total:  livro.Total,
 	}
 	if !book.Isbn.Validate() {
-		return &api.Status{Status: 1, Msg: "ISBN inválido"}, nil
+		return &api_cad.Status{Status: 1, Msg: "ISBN inválido"}, nil
 	}
 
 	jsonData, err := json.Marshal(book)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
 	if s.mqttClient.IsConnected() {
@@ -181,25 +181,25 @@ func (s *Server) NovoLivro(ctx context.Context, livro *api.Livro) (*api.Status, 
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		} else {
 			log.Println("Mensagem publicada no tópico book/create")
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
-	return &api.Status{Status: 0}, nil
+	return &api_cad.Status{Status: 0}, nil
 }
 
-func (s *Server) ObtemLivro(ctx context.Context, request *api.Identificador) (*api.Livro, error) {
+func (s *Server) ObtemLivro(ctx context.Context, request *api_cad.Identificador) (*api_cad.Livro, error) {
 	book, err := s.bookRepo.ObtemLivro(utils.ISBN(request.Id))
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.Livro{
+	return &api_cad.Livro{
 		Isbn:   string(book.Isbn),
 		Titulo: book.Titulo,
 		Autor:  book.Autor,
@@ -207,7 +207,7 @@ func (s *Server) ObtemLivro(ctx context.Context, request *api.Identificador) (*a
 	}, nil
 }
 
-func (s *Server) ObtemTodosLivros(request *api.Vazia, stream api.PortalCadastro_ObtemTodosLivrosServer) error {
+func (s *Server) ObtemTodosLivros(request *api_cad.Vazia, stream api_cad.PortalCadastro_ObtemTodosLivrosServer) error {
 	books, err := s.bookRepo.ObtemTodosLivros()
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func (s *Server) ObtemTodosLivros(request *api.Vazia, stream api.PortalCadastro_
 	return nil
 }
 
-func (s *Server) EditaLivro(ctx context.Context, livro *api.Livro) (*api.Status, error) {
+func (s *Server) EditaLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad.Status, error) {
 	book := database.Book{
 		Isbn:   utils.ISBN(livro.Isbn),
 		Titulo: livro.Titulo,
@@ -234,34 +234,34 @@ func (s *Server) EditaLivro(ctx context.Context, livro *api.Livro) (*api.Status,
 
 	status, err := s.bookRepo.EditaLivro(book)
 	if err != nil {
-		return &api.Status{Status: 1, Msg: "Erro ao atualizar livro"}, err
+		return &api_cad.Status{Status: 1, Msg: "Erro ao atualizar livro"}, err
 	}
 
 	// Publicar mensagem de atualização no tópico MQTT
 	jsonData, err := json.Marshal(book)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 	if s.mqttClient.IsConnected() {
 		token := s.mqttClient.Publish("book/update", qos, false, jsonData)
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
 
-	return &api.Status{Status: status.Status}, nil
+	return &api_cad.Status{Status: status.Status}, nil
 }
 
-func (s *Server) RemoveLivro(ctx context.Context, request *api.Identificador) (*api.Status, error) {
+func (s *Server) RemoveLivro(ctx context.Context, request *api_cad.Identificador) (*api_cad.Status, error) {
 	status, err := s.bookRepo.RemoveLivro(utils.ISBN(request.Id))
 	if err != nil {
-		return &api.Status{
+		return &api_cad.Status{
 			Status: status.Status,
 			Msg:    err.Error(),
 		}, err
@@ -271,7 +271,7 @@ func (s *Server) RemoveLivro(ctx context.Context, request *api.Identificador) (*
 	jsonData, err := json.Marshal(request)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
-		return &api.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
+		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
 	if s.mqttClient.IsConnected() {
@@ -279,11 +279,11 @@ func (s *Server) RemoveLivro(ctx context.Context, request *api.Identificador) (*
 		token.Wait()
 		if token.Error() != nil {
 			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
+			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
 		}
 	} else {
 		log.Println("Cliente MQTT não está conectado")
-		return &api.Status{Status: 1, Msg: "MQTT não conectado"}, nil
+		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
 	}
-	return &api.Status{Status: status.Status, Msg: status.Msg}, nil
+	return &api_cad.Status{Status: status.Status, Msg: status.Msg}, nil
 }

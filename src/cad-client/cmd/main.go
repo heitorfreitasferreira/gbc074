@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"library-manager/cad-client/internal/handlers"
 	"log"
 	"os"
 
-	api_cad "library-manager/shared/api/cad"
+	"library-manager/cad-client/internal/handlers"
+	"library-manager/shared/api/cad"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
