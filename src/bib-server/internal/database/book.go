@@ -101,8 +101,8 @@ func (repo *InMemoryBookRepo) GetById(bookISBN string) (Book, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	book, err := repo.books[bookISBN]
-	if err {
+	book, ok := repo.books[bookISBN]
+	if !ok {
 		return Book{}, ErrBookNotFound
 	}
 	return book, nil
