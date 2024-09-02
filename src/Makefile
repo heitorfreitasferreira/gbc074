@@ -1,5 +1,5 @@
 GO := go
-BUILD_DIR := ./bin
+BUILD_DIR := ../bin
 
 # Inputs
 BIB_SERVER := ./bib-server/cmd/main.go
