@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
-	"regexp"
 	"time"
 
 	"library-manager/bib-server/internal/database"
 	"library-manager/bib-server/internal/queue/handlers"
+	"library-manager/bib-server/internal/server/utils"
 	"library-manager/shared/api/bib"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -76,48 +77,54 @@ func (s *Server) publishWithEmptyMessage(topic handlers.UserBookTopic) error {
 }
 
 func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmprestimoServer) error {
-	data, err := stream.Recv()
-	log.Printf("Recebendo dados %v", data)
+	for {
+		data, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
 
-	if err != nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    "Erro ao receber dados",
-			},
-		)
-	}
+		log.Printf("Recebendo dados %v", data)
 
-	if data.Usuario == nil || data.Livro == nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    "Dados inválidos",
-			},
-		)
-	}
+		if err != nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    "Erro ao receber dados",
+				},
+			)
+		}
 
-	userBook := database.NewUserBook(data.Usuario.Id, data.Livro.Id)
-	jsonData, err := json.Marshal(userBook)
-	if err != nil {
-		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
-		log.Println(errMsg)
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    errMsg,
-			},
-		)
-	}
+		if data.Usuario == nil || data.Livro == nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    "Dados inválidos",
+				},
+			)
+		}
 
-	err = s.publishMessage(handlers.BookLoanTopic, jsonData)
-	if err != nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    err.Error(),
-			},
-		)
+		userBook := database.NewUserBook(data.Usuario.Id, data.Livro.Id)
+		jsonData, err := json.Marshal(userBook)
+		if err != nil {
+			errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
+			log.Println(errMsg)
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    errMsg,
+				},
+			)
+		}
+
+		err = s.publishMessage(handlers.BookLoanTopic, jsonData)
+		if err != nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    err.Error(),
+				},
+			)
+		}
 	}
 
 	return stream.SendAndClose(
@@ -284,50 +291,17 @@ func (s *Server) ListaLivrosEmFalta(req *api_bib.Vazia, stream api_bib.PortalBib
 }
 
 func (s *Server) PesquisaLivro(req *api_bib.Criterio, stream api_bib.PortalBiblioteca_PesquisaLivroServer) error {
-	log.Printf("Validando critério: %v", req.Criterio)
-	operatorValidator := regexp.MustCompile(`&|\|`)
-	searchParts := operatorValidator.Split(req.Criterio, 2)
-	operator := operatorValidator.FindString(req.Criterio)
+	allBooks := s.bookRepo.GetAll()
 
-	log.Printf("Partes da pesquisa: %v", searchParts)
-
-	bookList := s.bookRepo.GetAll()
-	validBookList := make([]database.Book, 0)
-
-	titleQuery := regexp.MustCompile(`titulo:(.+)`)
-	authorQuery := regexp.MustCompile(`autor:(.+)`)
-	isbnQuery := regexp.MustCompile(`isbn:(.+)`)
-
-	matchesQuery := func(book database.Book, query string) bool {
-		if titleQuery.MatchString(query) {
-			return titleQuery.FindStringSubmatch(query)[1] == book.Title
-		}
-		if authorQuery.MatchString(query) {
-			return authorQuery.FindStringSubmatch(query)[1] == book.Author
-		}
-		if isbnQuery.MatchString(query) {
-			return isbnQuery.FindStringSubmatch(query)[1] == book.ISBN
-		}
-		return false
+	filteredBooks, err := utils.FilterBooks(allBooks, req.Criterio)
+	if err != nil {
+		return err
 	}
 
-	for _, book := range bookList {
-		match1 := matchesQuery(book, searchParts[0])
-		match2 := len(searchParts) > 1 && matchesQuery(book, searchParts[1])
-
-		if (operator == "&" && match1 && match2) || (operator == "|" && (match1 || match2)) || (operator == "" && match1) {
-			validBookList = append(validBookList, book)
-		}
-	}
-
-	for _, book := range validBookList {
+	for _, book := range filteredBooks {
 		protoBook := database.BookToProto(book)
-		if err := stream.Send(&protoBook); err != nil {
-			stream.Send(nil)
-			return err
-		}
+		stream.Send(&protoBook)
 	}
 
-	stream.Send(nil)
 	return nil
 }

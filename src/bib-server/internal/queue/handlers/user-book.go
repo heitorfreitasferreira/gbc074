@@ -45,6 +45,13 @@ func BookLoanHandler(client mqtt.Client, msg mqtt.Message) {
 	}
 
 	database.ConcreteUserBookRepo.Create(userBook)
+	database.ConcreteBookRepo.Update(database.Book{
+		ISBN:      book.ISBN,
+		Title:     book.Title,
+		Total:     book.Total,
+		Author:    book.Author,
+		Remaining: book.Remaining - 1,
+	})
 }
 
 func BookReturnHandler(client mqtt.Client, msg mqtt.Message) {

@@ -43,23 +43,25 @@ func BookUpdateHandler(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	totalDiff := protoBook.Total - bookToUpdate.Total
+	newRemaining := bookToUpdate.Remaining + totalDiff
 	database.ConcreteBookRepo.Update(database.Book{
 		ISBN:      protoBook.Isbn,
 		Author:    protoBook.Autor,
 		Total:     protoBook.Total,
 		Title:     protoBook.Titulo,
-		Remaining: bookToUpdate.Remaining,
+		Remaining: newRemaining,
 	})
 }
 
 func BookRemoveHandler(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Mensagem recebida no tópico book/remove: %s\n", msg.Payload())
-	var protoBook api_bib.Livro
-	err := json.Unmarshal(msg.Payload(), &protoBook)
+	var protoId api_bib.Identificador
+	err := json.Unmarshal(msg.Payload(), &protoId)
 	if err != nil {
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
 		return
 	}
 
-	database.ConcreteBookRepo.Remove(string(protoBook.Isbn))
+	database.ConcreteBookRepo.Remove(protoId.Id)
 }
