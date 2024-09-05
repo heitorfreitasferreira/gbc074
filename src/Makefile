@@ -1,5 +1,5 @@
 GO := go
-BUILD_DIR := ./bin
+BUILD_DIR := ../bin
 
 # Inputs
 BIB_SERVER := ./bib-server/cmd/main.go
@@ -17,7 +17,7 @@ CAD_CLIENT_BIN := cad-client
 
 .PHONY: all install-deps bib-server cad-server bib-client cad-client clean
 
-all: bib-server cad-server bib-client cad-client
+all: clean bib-server cad-server bib-client cad-client
 
 install-deps:
 	@echo "Instalando dependências..."
