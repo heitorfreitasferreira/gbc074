@@ -136,54 +136,59 @@ func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmpres
 }
 
 func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevolucaoServer) error {
-	data, err := stream.Recv()
-	log.Printf("Recebendo dados %v", data)
+	for {
+		data, err := stream.Recv()
+		log.Printf("Recebendo dados %v", data)
+		if err == io.EOF {
+			break
+		}
 
-	if err != nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    "Erro ao receber dados",
-			},
-		)
-	}
+		if err != nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    "Erro ao receber dados",
+				},
+			)
+		}
 
-	if data.Usuario == nil || data.Livro == nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    "Dados inválidos",
-			},
-		)
-	}
+		if data.Usuario == nil || data.Livro == nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    "Dados inválidos",
+				},
+			)
+		}
 
-	userBook := database.ProtoToUserBook(data)
-	jsonData, err := json.Marshal(userBook)
-	if err != nil {
-		errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
-		log.Println(errMsg)
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    errMsg,
-			},
-		)
-	}
+		userBook := database.ProtoToUserBook(data)
+		jsonData, err := json.Marshal(userBook)
+		if err != nil {
+			errMsg := fmt.Sprintf("Erro ao converter dados para JSON: %v", err)
+			log.Println(errMsg)
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    errMsg,
+				},
+			)
+		}
 
-	err = s.publishMessage(handlers.BookReturnTopic, jsonData)
-	if err != nil {
-		return stream.SendAndClose(
-			&api_bib.Status{
-				Status: 1,
-				Msg:    err.Error(),
-			},
-		)
+		err = s.publishMessage(handlers.BookReturnTopic, jsonData)
+		if err != nil {
+			return stream.SendAndClose(
+				&api_bib.Status{
+					Status: 1,
+					Msg:    err.Error(),
+				},
+			)
+		}
 	}
 
 	return stream.SendAndClose(
 		&api_bib.Status{
 			Status: 0,
-			Msg:    "Solicitação de empréstimo realizada!",
+			Msg:    "Solicitação de devolução realizada!",
 		},
 	)
 
