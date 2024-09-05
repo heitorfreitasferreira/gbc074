@@ -127,8 +127,8 @@ func (repo *InMemoryUserBookRepo) RemoveUserLoan(userBook UserBook) error {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	userLoans, err := repo.data[userBook.UserCPF]
-	if err {
+	userLoans, ok := repo.data[userBook.UserCPF]
+	if !ok {
 		return ErrUserNotFound
 	}
 
