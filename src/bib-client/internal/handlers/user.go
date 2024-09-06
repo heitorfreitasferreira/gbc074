@@ -64,7 +64,7 @@ func listBlockedUsers(client api.PortalBibliotecaClient) error {
 		if err != nil {
 			return fmt.Errorf("erro ao obter usuários: %v", err)
 		}
-		fmt.Fprintf(w, "Usuario %v com CPF: %v bloqueado pelo livro %v\n", res.Nome, res.Cpf, res.Title)
+		fmt.Fprintf(w, "Usuario %v com CPF: %v bloqueado pelo livro %v\n", res.Usuario.Nome, res.Usuario.Cpf, res.Livros[0].Titulo)
 	}
 
 	w.Flush()
@@ -74,4 +74,3 @@ func listBlockedUsers(client api.PortalBibliotecaClient) error {
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	return nil
 }
-
