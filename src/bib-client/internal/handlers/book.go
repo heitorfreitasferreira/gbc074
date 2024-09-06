@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"text/tabwriter"
 	"time"
@@ -156,12 +157,18 @@ func searchBook(client api.PortalBibliotecaClient) error {
 		return fmt.Errorf("erro ao pesquisar livro: %v", err)
 	}
 
-	res, err := stream.Recv()
+	for {
+		res, err := stream.Recv()
 
-	if err != nil {
-		return fmt.Errorf("erro ao buscar livro: %v", err)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+
+			return fmt.Errorf("erro ao buscar livro: %v", err)
+		}
+
+		fmt.Printf("Livro encontrado: %v\n", res)
 	}
-	fmt.Printf("Livro encontrado: %v\n", res)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
