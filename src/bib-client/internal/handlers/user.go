@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -29,7 +28,7 @@ func blockUsers(client api.PortalBibliotecaClient) error {
 	return nil
 }
 
-func releaseUsers(client api.PortalBibliotecaClient) eror {
+func releaseUsers(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -45,7 +44,7 @@ func releaseUsers(client api.PortalBibliotecaClient) eror {
 	return nil
 }
 
-func listBlockedUsers(client api.PortalBibliotecaClient) errors {
+func listBlockedUsers(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

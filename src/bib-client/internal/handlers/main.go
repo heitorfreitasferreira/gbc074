@@ -7,7 +7,7 @@ import (
 	api "library-manager/shared/api/bib"
 )
 
-type MyHandler func(api.PortalCadastroClient) error
+type MyHandler func(api.PortalBibliotecaClient) error
 
 func Choose(host, port string) MyHandler {
 	options := []struct {

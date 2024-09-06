@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -24,7 +22,16 @@ func borrowBook(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	res, err := client.RealizaEmprestimo(ctx, &api.UsuarioLivro{user: user, livro: isbn})
+	req := &api.UsuarioLivro{
+		Usuario: &api.Identificador{
+				Id: user,
+		},
+		Livro: &api.Identificador{
+				Id: isbn,
+		},
+}
+
+	res, err := client.RealizaEmprestimo(ctx, req)
 	if err != nil {
 		return fmt.Errorf("erro ao emprestar livro: %v", err)
 	}
@@ -44,7 +51,7 @@ func returnBook(client api.PortalBibliotecaClient) error {
 	fmt.Println("Digite o ISBN do livro:")
 	fmt.Scan(&isbn)
 
-	ctx, cancel := context.RealizaDevolucao(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	res, err := client.RealizaEmprestimo(ctx, &api.UsuarioLivro{user: user, livro: isbn})
@@ -59,7 +66,7 @@ func returnBook(client api.PortalBibliotecaClient) error {
 	return nil
 }
 
-func listBorrowedBooks(client api.PortalBibliotecaClient) errr {
+func listBorrowedBooks(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -85,7 +92,7 @@ func listBorrowedBooks(client api.PortalBibliotecaClient) errr {
 	return nil
 }
 
-func listMissingBooks(client api.PortalBibliotecaClient) err {
+func listMissingBooks(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -111,7 +118,7 @@ func listMissingBooks(client api.PortalBibliotecaClient) err {
 	return nil
 }
 
-func searchBook(client api.PortalBibliotecaClient) err {
+func searchBook(client api.PortalBibliotecaClient) error {
 	var crit string
 	fmt.Println("Digite o critério de busca do livro:")
 	fmt.Scan(&crit)
