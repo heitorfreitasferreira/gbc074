@@ -12,7 +12,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Check if the cad-server executable exists and is executable
+# Check if the bib-server executable exists and is executable
 if [ -x "./bin/bib-server" ]; then
     if [ -n "$PORT" ]; then
         ./bin/bib-server --port "$PORT"
@@ -20,7 +20,7 @@ if [ -x "./bin/bib-server" ]; then
 	./bin/bib-server 
     fi
 else
-    echo "Error: ./bin/cad-server not found or not executable."
+    echo "Error: ./bin/bib-server not found or not executable."
     exit 1
 fi
 
