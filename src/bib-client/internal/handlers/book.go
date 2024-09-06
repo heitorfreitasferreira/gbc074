@@ -37,17 +37,17 @@ func borrowBook(client api.PortalBibliotecaClient) error {
 	}
 
 	if err := stream.Send(req); err != nil {
-		return fmt.Errorf("erro ao enviar o livro para devolução: %v", err)
+		return fmt.Errorf("erro ao enviar o livro para emprestimo: %v", err)
 	}
 	status, err := stream.CloseAndRecv()
 	if err != nil {
-		return fmt.Errorf("erro ao receber o status da devolução: %v", err)
+		return fmt.Errorf("erro ao receber o status do emprestimo: %v", err)
 	}
 	if status.Status == 1 {
-		return fmt.Errorf("erro ao devolver o livro: %v", status)
+		return fmt.Errorf("erro ao emprestar o livro: %v", status)
 	}
 
-	fmt.Printf("Livro %s devolvido pelo usuário %s com sucesso\n", isbn, user)
+	fmt.Printf("Livro %s emprestado para usuário %s com sucesso\n", isbn, user)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -65,7 +65,7 @@ func returnBook(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	stream, err := client.RealizaEmprestimo(ctx)
+	stream, err := client.RealizaDevolucao(ctx)
 	if err != nil {
 		return fmt.Errorf("erro ao conectar ao servidor: %v", err)
 	}
@@ -151,7 +151,12 @@ func searchBook(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	res, err := client.PesquisaLivro(ctx, &api.Criterio{Criterio: crit})
+	stream, err := client.PesquisaLivro(ctx, &api.Criterio{Criterio: crit})
+	if err != nil {
+		return fmt.Errorf("erro ao pesquisar livro: %v", err)
+	}
+
+	res, err := stream.Recv()
 
 	if err != nil {
 		return fmt.Errorf("erro ao buscar livro: %v", err)

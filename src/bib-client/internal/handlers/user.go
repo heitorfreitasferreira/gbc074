@@ -21,7 +21,7 @@ func blockUsers(client api.PortalBibliotecaClient) error {
 		return fmt.Errorf("erro ao bloquear usuários com devoluções pendentes: %v", err)
 	}
 
-	fmt.Printf("Um total de  %v foram bloqueados com sucesso\n", res)
+	fmt.Printf("%v\n", res)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -37,7 +37,7 @@ func releaseUsers(client api.PortalBibliotecaClient) error {
 		return fmt.Errorf("erro ao liberar usuários com devoluções pendentes: %v", err)
 	}
 
-	fmt.Printf("Um total de  %v foram liberadas com sucesso\n", res)
+	fmt.Printf("%v\n", res)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
