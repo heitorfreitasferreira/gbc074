@@ -16,7 +16,7 @@ import (
 
 func main() {
 	host := flag.String("host", "localhost", "Host to connect to")
-	port := flag.String("port", "50051", "Port to listen on")
+	port := flag.String("port", "50052", "Port to listen on")
 
 	flag.Parse()
 
