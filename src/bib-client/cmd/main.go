@@ -28,7 +28,7 @@ func main() {
 	}
 
 	defer conn.Close()
-	client := api_cad.NewPortalCadastroClient(conn)
+	client := api.NewPortalBibliotecaClient(conn)
 	for {
 		handler := handlers.Choose(*host, *port)
 

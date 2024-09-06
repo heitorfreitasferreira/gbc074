@@ -24,19 +24,30 @@ func borrowBook(client api.PortalBibliotecaClient) error {
 
 	req := &api.UsuarioLivro{
 		Usuario: &api.Identificador{
-				Id: user,
+			Id: user,
 		},
 		Livro: &api.Identificador{
-				Id: isbn,
+			Id: isbn,
 		},
-}
+	}
 
-	res, err := client.RealizaEmprestimo(ctx, req)
+	stream, err := client.RealizaEmprestimo(ctx)
 	if err != nil {
 		return fmt.Errorf("erro ao emprestar livro: %v", err)
 	}
 
-	fmt.Printf("Livro %v emprestado com sucesso: %v\n", user, isbn, res)
+	if err := stream.Send(req); err != nil {
+		return fmt.Errorf("erro ao enviar o livro para devolução: %v", err)
+	}
+	status, err := stream.CloseAndRecv()
+	if err != nil {
+		return fmt.Errorf("erro ao receber o status da devolução: %v", err)
+	}
+	if status.Status == 1 {
+		return fmt.Errorf("erro ao devolver o livro: %v", status)
+	}
+
+	fmt.Printf("Livro %s devolvido pelo usuário %s com sucesso\n", isbn, user)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -54,12 +65,26 @@ func returnBook(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	res, err := client.RealizaEmprestimo(ctx, &api.UsuarioLivro{user: user, livro: isbn})
+	stream, err := client.RealizaEmprestimo(ctx)
 	if err != nil {
-		return fmt.Errorf("erro ao devolver livro: %v", err)
+		return fmt.Errorf("erro ao conectar ao servidor: %v", err)
+	}
+	req := &api.UsuarioLivro{
+		Usuario: &api.Identificador{Id: user},
+		Livro:   &api.Identificador{Id: isbn},
+	}
+	if err := stream.Send(req); err != nil {
+		return fmt.Errorf("erro ao enviar o livro para devolução: %v", err)
+	}
+	status, err := stream.CloseAndRecv()
+	if err != nil {
+		return fmt.Errorf("erro ao receber o status da devolução: %v", err)
+	}
+	if status.Status == 1 {
+		return fmt.Errorf("erro ao devolver o livro: %v", status)
 	}
 
-	fmt.Printf("Livro %v devolvido com sucesso: %v\n", user, isbn, res)
+	fmt.Printf("Livro %s devolvido pelo usuário %s com sucesso\n", isbn, user)
 	fmt.Println("Pressione ENTER...")
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -82,7 +107,7 @@ func listBorrowedBooks(client api.PortalBibliotecaClient) error {
 		if err != nil {
 			break
 		}
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", book.Isbn, book.Titulo, book.Autor)
+		fmt.Fprintf(w, "%v\t%v\t%v\n", book.Isbn, book.Titulo, book.Autor)
 	}
 
 	w.Flush()
@@ -108,7 +133,7 @@ func listMissingBooks(client api.PortalBibliotecaClient) error {
 		if err != nil {
 			break
 		}
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\n", book.Isbn, book.Titulo, book.Autor)
+		fmt.Fprintf(w, "%v\t%v\t%v\n", book.Isbn, book.Titulo, book.Autor)
 	}
 
 	w.Flush()
@@ -126,7 +151,7 @@ func searchBook(client api.PortalBibliotecaClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	res, err := client.PesquisaLivro(ctx, &api.Criterio{criterio: crit})
+	res, err := client.PesquisaLivro(ctx, &api.Criterio{Criterio: crit})
 
 	if err != nil {
 		return fmt.Errorf("erro ao buscar livro: %v", err)
