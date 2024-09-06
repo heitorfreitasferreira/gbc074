@@ -41,8 +41,8 @@ Para subir os servidores de cadastro e da biblioteca, basta executar o binário 
 chmod +x cad-server.sh
 chmod +x bibi-server.sh
 
-./cad-server.sh 42069
-./bibi-server.sh 6666
+./cad-server.sh --port 9000
+./bib-server.sh --port 8000
 ```
 
 É possivel subir varias versões dos servidores, desde que sejam em portas diferentes.
@@ -57,8 +57,8 @@ Para rodar os clientes, basta executar o binário diretamente, ou via script (re
 chmod +x cad-client.sh
 chmod +x bibi-client.sh
 
-./cad-client.sh localhost 42069
-./bibi-client.sh localhost 6666
+./cad-client.sh --port 9000
+./bib-client.sh ---port 8000
 ```
 
 Isso irá conectar o cliente ao servidor na porta especificada.
