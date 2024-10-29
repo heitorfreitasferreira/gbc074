@@ -1,37 +1,40 @@
-# Coisas a fazer para a primeira entrega
+# Entrega 2
 
-## Cliente Crud
+Item | Responsável
+--- | ---
+1.1 | [ ] @
+1.2 | [ ] @
+1.3 | [ ] @
+1.4 | [ ] @
+2.1 | [ ] @
+2.2 | [ ] @
+2.3 | [ ] @
+3.1 | [ ] @
+3.2 | [ ] @
+4.1 | [ ] @heitorfreitasferreira
+4.2 | [ ] @heitorfreitasferreira
+4.3 | [ ] @heitorfreitasferreira
 
-> Responsaveis @heitorfreitasferreira @yurihnrq
+## 1. Subir dois clusters de banco de dados
 
-- [x] Fazer o usuário escolher qual caso de uso ele quer utilizar
-- [x] Capturar dados para input do caso de uso
-- [x] Enviar os dados para o servidor
-- [x] Resetar a View para o estado inicial
-- [ ] Implementar a view de capturar identificador
-- [ ] Implementar a view de capturar dados de libro
-- [ ] Enviar o resto das requisições grpc (só foi implementado o create user para teste de prova de conceito)
+1. 1 cluster para User e UserBook
+1. 1 cluster para Book.
+1. Cada cluster deve possuir três réplicas.
+1. O banco de dados deve ser [LevelDB](https://github.com/syndtr/goleveldb)
 
-## Servidor CRUD
+## 2. Utilizar Raft para comunicação entre servidor e BD
 
-> Responsaveis @heitorfreitasferreira
+1. Utilizar pacote [Raft para GO](https://github.com/hashicorp/raft).
+1. Remover uso do MQTT
+1. Nada muda entre cliente e servidor (manter gRPC).
 
-- [x] Rotas para os casos de uso
-  - [x] Create User
-  - [x] Read 1 User
-  - [ ] Read all User
-  - [x] Update User
-  - [x] Delete User
-  - [ ] Create Book
-  - [ ] Read 1 Book
-  - [ ] Read all Book
-  - [ ] Update Book
-  - [ ] Delete Book
-- [x] Banco de dados in-memory
-- [ ] Handlers eventos mqtt com Mosquitto
+## 3. Implementar serviço de cache de dados
 
-## Cliente Biblioteca
+1. Validade de 5 segundos
+1. Atualizada a cada modificação/consulta nos clusters.
 
-## Servidor Biblioteca
+## 4. Atualizar scripts e makefile
 
-Adicionado boilerplate; criado instância do servidor.
+1. Implementar script replica.sh para instanciar replicas (0, 1 ou 2) e adicioná-las em um cluster (0 ou 1).
+1. Atualizar scripts de execução dos servidores se necessário.
+1. Atualizar makefile para instalar novas dependências necessárias.
