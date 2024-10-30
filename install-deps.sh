@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Instalando dependências...\n\n\n"
-sudo yay -S --needed go mosquitto protoc
+sudo yay -S --needed go protoc leveldb
 
 # echo "Gerando os arquivos de código a partir do arquivo proto\n\n\n"
 # # Gerar os arquivos de código a partir do arquivo proto no cliente do crud
