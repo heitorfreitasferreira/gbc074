@@ -8,8 +8,11 @@ require (
 	google.golang.org/protobuf v1.34.2
 )
 
+require github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
