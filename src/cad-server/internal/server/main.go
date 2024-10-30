@@ -7,9 +7,7 @@ import (
 
 	"library-manager/cad-server/internal/database"
 	"library-manager/cad-server/internal/utils"
-	"library-manager/shared/api/cad"
-
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	api_cad "library-manager/shared/api/cad"
 )
 
 var qos byte = 2
@@ -19,16 +17,12 @@ type Server struct {
 
 	userRepo database.UserRepo
 	bookRepo database.BookRepo
-
-	mqttClient mqtt.Client
 }
 
-func NewServer(userRepo database.UserRepo, mqttClient mqtt.Client, bookRepo database.BookRepo) *Server {
+func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo) *Server {
 	return &Server{
 		userRepo: userRepo,
 		bookRepo: bookRepo,
-
-		mqttClient: mqttClient,
 	}
 }
 
@@ -44,20 +38,8 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*ap
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("user/create", qos, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		} else {
-			log.Println("Mensagem publicada no tópico user/create")
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
+	// TODO: Salvar usuário no banco de dados
+	_ = jsonData
 	return &api_cad.Status{Status: 0}, nil
 }
 
@@ -111,17 +93,9 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*a
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("user/update", qos, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
+
+	// TODO: Editar usuário no banco de dados
+	_ = jsonData
 
 	return &api_cad.Status{Status: status.Status}, nil
 }
@@ -141,18 +115,8 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api_cad.Identificad
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("user/remove", 2, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
+	// TODO: Remover usuário do banco de dados
+	_ = jsonData
 	return &api_cad.Status{Status: status.Status, Msg: status.Msg}, nil
 }
 
@@ -167,20 +131,8 @@ func (s *Server) NovoLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad.
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("book/create", qos, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		} else {
-			log.Println("Mensagem publicada no tópico book/create")
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
+	//TODO: Salvar livro no banco de dados
+	_ = jsonData
 	return &api_cad.Status{Status: 0}, nil
 }
 
@@ -235,18 +187,8 @@ func (s *Server) EditaLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad
 		log.Printf("Erro ao converter dados do livro para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("book/update", qos, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
-
+	// TODO: Editar livro no banco de dados
+	_ = jsonData
 	return &api_cad.Status{Status: status.Status}, nil
 }
 
@@ -266,16 +208,7 @@ func (s *Server) RemoveLivro(ctx context.Context, request *api_cad.Identificador
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish("book/remove", 2, false, jsonData)
-		token.Wait()
-		if token.Error() != nil {
-			log.Printf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-			return &api_cad.Status{Status: 1, Msg: "Erro ao publicar mensagem no MQTT"}, nil
-		}
-	} else {
-		log.Println("Cliente MQTT não está conectado")
-		return &api_cad.Status{Status: 1, Msg: "MQTT não conectado"}, nil
-	}
+	// TODO: Remover livro do banco de dados
+	_ = jsonData
 	return &api_cad.Status{Status: status.Status, Msg: status.Msg}, nil
 }

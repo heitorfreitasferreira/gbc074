@@ -10,9 +10,9 @@ import (
 	"syscall"
 
 	"library-manager/cad-server/internal/database"
-	"library-manager/cad-server/internal/queue"
 	"library-manager/cad-server/internal/server"
-	"library-manager/shared/api/cad"
+	api_cad "library-manager/shared/api/cad"
+	sharedDatabase "library-manager/shared/database"
 
 	"google.golang.org/grpc"
 )
@@ -26,21 +26,24 @@ func main() {
 	// Receive notifications on chanel if receive os.Interrupt or syscall.SIGTERM.
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
-	mqttClient := queue.GetMqttBroker(*host, 1883, os.Getpid())
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("error connecting to MQTT broker: %v", token.Error())
-	}
-
-	// O defer garante que esse comando seja executado quando a função sair da pilha.
-	defer mqttClient.Disconnect(250)
-
 	list, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *host, *port))
 	if err != nil {
 		log.Fatalf("error opening port %s: %v", *port, err)
 	}
 	s := grpc.NewServer()
+	// TODO Resolver o banco de dados distribuido
+	bookRepo, err := database.NewInMemoryBookRepo(sharedDatabase.Cluster1Replica0Path)
+	if err != nil {
+		log.Fatalf("error creating book repository: %v", err)
+	}
+	defer bookRepo.Close()
 
-	api_cad.RegisterPortalCadastroServer(s, server.NewServer(database.ConcreteUserRepo, mqttClient, database.ConcreteBookRepo))
+	userRepo, err := database.NewInMemoryUserRepo(sharedDatabase.Cluster0Replica0Path)
+	if err != nil {
+		log.Fatalf("error creating user repository: %v", err)
+	}
+	defer userRepo.Close()
+	api_cad.RegisterPortalCadastroServer(s, server.NewServer(userRepo, bookRepo))
 
 	go func() {
 		<-ch
