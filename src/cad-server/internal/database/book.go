@@ -185,8 +185,8 @@ func (repo *LevelDBBookRepo) cleanupCache() {
 			if !timedBook.IsValid() {
 				delete(repo.cache, isbn)
 			}
-			repo.mu.Unlock()
 		}
+		repo.mu.Unlock()
 	}
 }
 

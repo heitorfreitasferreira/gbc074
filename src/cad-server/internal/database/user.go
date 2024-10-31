@@ -174,8 +174,8 @@ func (repo *InMemoryUserRepo) cleanupCache() {
 			if !timeduser.IsValid() {
 				delete(repo.cache, isbn)
 			}
-			repo.mu.Unlock()
 		}
+		repo.mu.Unlock()
 	}
 }
 
