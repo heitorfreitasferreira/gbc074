@@ -62,7 +62,6 @@ func NewInMemoryBookRepo(dbPath string) (BookRepo, error) {
 	go repo.cleanupCache()
 	return repo, nil
 }
-
 func (repo *LevelDBBookRepo) Close() error {
 	return repo.db.Close()
 }
