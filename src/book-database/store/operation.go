@@ -1,8 +1,9 @@
-package database
+package store
 
 import (
-	"encoding/json"
 	"time"
+
+	"library-manager/book-database/repository"
 )
 
 type OperationType int
@@ -22,8 +23,7 @@ const (
 
 type Operation struct {
 	OpType    OperationType
-	Table     Table
-	Key       string
+	Key       repository.ISBN
 	Value     repository.Book
 	TimeStamp time.Time
 }

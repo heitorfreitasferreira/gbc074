@@ -1,330 +1,103 @@
-package cmd
+package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"io"
 	"log"
-	"net"
+	"net/http"
 	"os"
-	"path/filepath"
-	"sync"
-	"time"
+	"os/signal"
 
-	"library-manager/book-database/repository"
-	"library-manager/shared/api/cad"
-	"library-manager/shared/database"
-
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
+	"library-manager/book-database/http"
+	"library-manager/book-database/store"
 )
 
+// INFO: This file is based on this example project: https://github.com/otoolep/hraftd/tree/master
+
+// Command line defaults
 const (
-	retainSnapshotCount = 2
-	raftTimeout         = 10 * time.Second
+	DefaultHTTPAddr = "localhost:11000"
+	DefaultRaftAddr = "localhost:12000"
 )
 
-// BookDatabase is a simple key-value store, where all changes are made via Raft consensus.
-type BookDatabase struct {
-	RaftDir  string
-	RaftBind string
-	inmem    bool
+// Command line parameters
+var inmem bool
+var httpAddr string
+var raftAddr string
+var joinAddr string
+var nodeID string
 
-	mu   sync.Mutex
-	repo repository.BookRepo
-
-	raft   *raft.Raft
-	logger *log.Logger
-}
-
-// New returns a new Store (BookDatabase).
-func New(inmem bool) *BookDatabase {
-	db, err := repository.New(database.Cluster0Replica0Path)
-
-	if err != nil {
-		log.Fatalf("failed to create database: %s", err)
-		return nil
-	}
-
-	return &BookDatabase{
-		repo:   db,
-		inmem:  inmem,
-		logger: log.New(os.Stderr, "[store] ", log.LstdFlags),
+func init() {
+	flag.BoolVar(&inmem, "inmem", false, "Use in-memory storage for Raft")
+	flag.StringVar(&httpAddr, "haddr", DefaultHTTPAddr, "Set the HTTP bind address")
+	flag.StringVar(&raftAddr, "raddr", DefaultRaftAddr, "Set Raft bind address")
+	flag.StringVar(&joinAddr, "join", "", "Set join address, if any")
+	flag.StringVar(&nodeID, "id", "", "Node ID. If not set, same as Raft bind address")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] <raft-data-path> \n", os.Args[0])
+		flag.PrintDefaults()
 	}
 }
 
-// Open opens the store. If enableSingle is set, and there are no existing peers,
-// then this node becomes the first node, and therefore leader, of the cluster.
-// localID should be the server identifier for this node.
-func (s *BookDatabase) Open(enableSingle bool, localID string) error {
-	// Setup Raft configuration.
-	config := raft.DefaultConfig()
-	config.LocalID = raft.ServerID(localID)
+func main() {
+	flag.Parse()
+	if flag.NArg() == 0 {
+		fmt.Fprintf(os.Stderr, "No Raft storage directory specified\n")
+		os.Exit(1)
+	}
 
-	// Setup Raft communication.
-	addr, err := net.ResolveTCPAddr("tcp", s.RaftBind)
+	if nodeID == "" {
+		nodeID = raftAddr
+	}
+
+	// Ensure Raft storage exists.
+	raftDir := flag.Arg(0)
+	if raftDir == "" {
+		log.Fatalln("No Raft storage directory specified")
+	}
+	if err := os.MkdirAll(raftDir, 0700); err != nil {
+		log.Fatalf("failed to create path for Raft storage: %s", err.Error())
+	}
+
+	s := store.New(inmem)
+	s.RaftDir = raftDir
+	s.RaftBind = raftAddr
+	if err := s.Open(joinAddr == "", nodeID); err != nil {
+		log.Fatalf("failed to open store: %s", err.Error())
+	}
+
+	h := httpd.New(httpAddr, s)
+	if err := h.Start(); err != nil {
+		log.Fatalf("failed to start HTTP service: %s", err.Error())
+	}
+
+	// If join was specified, make the join request.
+	if joinAddr != "" {
+		if err := join(joinAddr, raftAddr, nodeID); err != nil {
+			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())
+		}
+	}
+
+	// We're up and running!
+	log.Printf("hraftd started successfully, listening on http://%s", httpAddr)
+
+	terminate := make(chan os.Signal, 1)
+	signal.Notify(terminate, os.Interrupt)
+	<-terminate
+	log.Println("hraftd exiting")
+}
+
+func join(joinAddr, raftAddr, nodeID string) error {
+	b, err := json.Marshal(map[string]string{"addr": raftAddr, "id": nodeID})
 	if err != nil {
 		return err
 	}
-	transport, err := raft.NewTCPTransport(s.RaftBind, addr, 3, 10*time.Second, os.Stderr)
+	resp, err := http.Post(fmt.Sprintf("http://%s/join", joinAddr), "application-type/json", bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
-
-	// Create the snapshot store. This allows the Raft to truncate the log.
-	snapshots, err := raft.NewFileSnapshotStore(s.RaftDir, retainSnapshotCount, os.Stderr)
-	if err != nil {
-		return fmt.Errorf("file snapshot store: %s", err)
-	}
-
-	// Create the log store and stable store.
-	var logStore raft.LogStore
-	var stableStore raft.StableStore
-	if s.inmem {
-		logStore = raft.NewInmemStore()
-		stableStore = raft.NewInmemStore()
-	} else {
-		boltDB, err := raftboltdb.New(raftboltdb.Options{
-			Path: filepath.Join(s.RaftDir, "raft.db"),
-		})
-		if err != nil {
-			return fmt.Errorf("new bbolt store: %s", err)
-		}
-		logStore = boltDB
-		stableStore = boltDB
-	}
-
-	// Instantiate the Raft systems.
-	ra, err := raft.NewRaft(config, (*fsm)(s), logStore, stableStore, snapshots, transport)
-	if err != nil {
-		return fmt.Errorf("new raft: %s", err)
-	}
-	s.raft = ra
-
-	if enableSingle {
-		configuration := raft.Configuration{
-			Servers: []raft.Server{
-				{
-					ID:      config.LocalID,
-					Address: transport.LocalAddr(),
-				},
-			},
-		}
-		ra.BootstrapCluster(configuration)
-	}
-
+	defer resp.Body.Close()
 	return nil
 }
-
-// Get returns the value for the given key.
-func (s *BookDatabase) Get(key string) (repository.Book, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.repo.GetBook(repository.ISBN(key))
-}
-
-func (s *BookDatabase) GetAll() ([]repository.Book, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.repo.GetAllBooks()
-}
-
-// Set sets the value for the given key.
-func (s *BookDatabase) Set(key, value string) error {
-	if s.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
-	}
-
-	operation := &database.Operation{
-		Table:     database.TableBook,
-		OpType:    database.OperationCreate,
-		Key:       key,
-		Value:     json.RawMessage(value),
-		TimeStamp: time.Now(),
-	}
-	operationJson, err := json.Marshal(operation)
-	if err != nil {
-		return err
-	}
-
-	f := s.raft.Apply(operationJson, raftTimeout)
-	return f.Error()
-}
-
-// Delete deletes the given key.
-func (s *BookDatabase) Delete(key string) error {
-	if s.raft.State() != raft.Leader {
-		return fmt.Errorf("not leader")
-	}
-
-	operation := &database.Operation{
-		Table:     database.TableBook,
-		OpType:    database.OperationDelete,
-		Key:       key,
-		TimeStamp: time.Now(),
-	}
-	operationJson, err := json.Marshal(operation)
-	if err != nil {
-		return err
-	}
-
-	f := s.raft.Apply(operationJson, raftTimeout)
-	return f.Error()
-}
-
-// Join joins a node, identified by nodeID and located at addr, to this store.
-// The node must be ready to respond to Raft communications at that address.
-func (s *BookDatabase) Join(nodeID, addr string) error {
-	s.logger.Printf("received join request for remote node %s at %s", nodeID, addr)
-
-	configFuture := s.raft.GetConfiguration()
-	if err := configFuture.Error(); err != nil {
-		s.logger.Printf("failed to get raft configuration: %v", err)
-		return err
-	}
-
-	for _, srv := range configFuture.Configuration().Servers {
-		// If a node already exists with either the joining node's ID or address,
-		// that node may need to be removed from the config first.
-		if srv.ID == raft.ServerID(nodeID) || srv.Address == raft.ServerAddress(addr) {
-			// However if *both* the ID and the address are the same, then nothing -- not even
-			// a join operation -- is needed.
-			if srv.Address == raft.ServerAddress(addr) && srv.ID == raft.ServerID(nodeID) {
-				s.logger.Printf("node %s at %s already member of cluster, ignoring join request", nodeID, addr)
-				return nil
-			}
-
-			future := s.raft.RemoveServer(srv.ID, 0, 0)
-			if err := future.Error(); err != nil {
-				return fmt.Errorf("error removing existing node %s at %s: %s", nodeID, addr, err)
-			}
-		}
-	}
-
-	f := s.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(addr), 0, 0)
-	if f.Error() != nil {
-		return f.Error()
-	}
-	s.logger.Printf("node %s at %s joined successfully", nodeID, addr)
-	return nil
-}
-
-type fsm BookDatabase
-
-// Apply applies a Raft log entry to the key-value store.
-func (f *fsm) Apply(l *raft.Log) interface{} {
-	var operation database.Operation
-	if err := json.Unmarshal(l.Data, &operation); err != nil {
-		panic(fmt.Sprintf("failed to unmarshal database.Operation: %s", err.Error()))
-	}
-
-	var status api_cad.Status
-	switch operation.OpType {
-	case database.OperationCreate:
-		status, _ = f.applyCreate(operation.Value)
-		break
-	case database.OperationEdit:
-		status, _ = f.applyEdit(operation.Value)
-		break
-	case database.OperationDelete:
-		status, _ = f.applyDelete(operation.Key)
-		break
-	default:
-		panic(fmt.Sprintf("unrecognized database.Operation op: %v", operation.OpType))
-	}
-
-	return &status
-}
-
-// Snapshot returns a snapshot of the key-value store.
-func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	// Clone the map.
-	o := make(map[string]repository.Book)
-	allBooks, err := f.repo.GetAllBooks()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, book := range allBooks {
-		o[string(book.Isbn)] = book
-	}
-	return &fsmSnapshot{store: o}, nil
-}
-
-// Restore stores the key-value store to a previous state.
-func (f *fsm) Restore(rc io.ReadCloser) error {
-	o := make(map[string]repository.Book)
-	if err := json.NewDecoder(rc).Decode(&o); err != nil {
-		return err
-	}
-
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	for _, value := range o {
-		f.repo.CreateBook(value)
-	}
-
-	return nil
-}
-
-func (f *fsm) applyCreate(value json.RawMessage) (api_cad.Status, error) {
-	book := repository.Book{}
-	err := json.Unmarshal(value, &book)
-	if err != nil {
-		return api_cad.Status{}, err
-	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.repo.CreateBook(book)
-}
-
-func (f *fsm) applyEdit(value json.RawMessage) (api_cad.Status, error) {
-	book := repository.Book{}
-	err := json.Unmarshal(value, &book)
-	if err != nil {
-		return api_cad.Status{}, err
-	}
-
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.repo.EditBook(book)
-}
-
-func (f *fsm) applyDelete(key string) (api_cad.Status, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.repo.RemoveBook(repository.ISBN(key))
-}
-
-type fsmSnapshot struct {
-	store map[string]repository.Book
-}
-
-func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
-	err := func() error {
-		// Encode data.
-		b, err := json.Marshal(f.store)
-		if err != nil {
-			return err
-		}
-
-		// Write data to sink.
-		if _, err := sink.Write(b); err != nil {
-			return err
-		}
-
-		// Close the sink.
-		return sink.Close()
-	}()
-
-	if err != nil {
-		sink.Cancel()
-	}
-
-	return err
-}
-
-func (f *fsmSnapshot) Release() {}
