@@ -13,7 +13,6 @@ import (
 
 	"library-manager/book-database/repository"
 	"library-manager/shared/api/cad"
-	"library-manager/shared/database"
 
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -38,8 +37,8 @@ type BookStore struct {
 }
 
 // New returns a new Store (BookDatabase).
-func New(inmem bool) *BookStore {
-	db, err := repository.New(database.Cluster0Replica0Path)
+func New(inmem bool, raftPath string) *BookStore {
+	db, err := repository.New(raftPath)
 
 	if err != nil {
 		log.Fatalf("failed to create database: %s", err)
@@ -287,20 +286,14 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 }
 
 func (f *fsm) applyCreate(value repository.Book) (api_cad.Status, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	return f.repo.CreateBook(value)
 }
 
 func (f *fsm) applyEdit(value repository.Book) (api_cad.Status, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	return f.repo.EditBook(value)
 }
 
 func (f *fsm) applyDelete(isbn repository.ISBN) (api_cad.Status, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	return f.repo.RemoveBook(isbn)
 }
 
