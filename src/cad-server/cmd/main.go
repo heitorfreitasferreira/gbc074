@@ -18,7 +18,8 @@ import (
 func main() {
 	port := flag.String("port", "50052", "Port to listen on")
 	host := flag.String("host", "127.0.0.1", "Host to listen on")
-	databaseAddr := flag.String("replica", "http://localhost:21000", "Address of the database server")
+	userDatabaseAddr := flag.String("cluster0", "http://localhost:21000", "Address of the user database server")
+	bookDatabaseAddr := flag.String("cluster1", "http://localhost:11000", "Address of the book database server")
 
 	flag.Parse()
 	ch := make(chan os.Signal, 1)
@@ -31,7 +32,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	api_cad.RegisterPortalCadastroServer(s, server.NewServer(*databaseAddr))
+	api_cad.RegisterPortalCadastroServer(s, server.NewServer(*userDatabaseAddr, *bookDatabaseAddr))
 
 	go func() {
 		<-ch

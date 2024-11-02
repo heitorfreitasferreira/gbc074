@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log"
+	"net/http"
 
 	api_cad "library-manager/shared/api/cad"
 	"library-manager/shared/utils"
@@ -12,12 +14,14 @@ import (
 
 type Server struct {
 	api_cad.UnimplementedPortalCadastroServer
-	databaseAddr string // Endereço http do banco, ex. http://localhost:21000
+	userDatabaseAddr string // Endereço http do banco, ex. http://localhost:21000
+	bookDatabaseAddr string
 }
 
-func NewServer(databaseAddr string) *Server {
+func NewServer(userDatabaseAddr, bookDatabaseAddr string) *Server {
 	return &Server{
-		databaseAddr: databaseAddr,
+		userDatabaseAddr: userDatabaseAddr,
+		bookDatabaseAddr: bookDatabaseAddr,
 	}
 }
 
@@ -33,8 +37,15 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*ap
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
-	// TODO: Salvar usuário no banco de dados
-	_ = jsonData
+
+	// TODO: Aqui é só um exemplo de como fazer a chamada http que eu não alterei muito pq ainda não ta pronto o banco de dados
+	req, err := http.Post(s.userDatabaseAddr+"/create", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil || req.StatusCode != http.StatusCreated {
+		log.Printf("Erro ao criar usuário: %v", err)
+		return &api_cad.Status{Status: 1, Msg: "Erro ao criar usuário"}, nil
+	}
+	defer req.Body.Close()
+
 	return &api_cad.Status{Status: 0}, nil
 }
 
