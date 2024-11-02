@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"library-manager/book-database/repository"
-	"library-manager/shared/api/cad"
+	"library-manager/book-database/database"
+	api_cad "library-manager/shared/api/cad"
 
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
 )
 
 const (
@@ -30,7 +30,7 @@ type BookStore struct {
 	inmem    bool
 
 	mu   sync.Mutex
-	repo repository.BookRepo
+	repo database.BookRepo
 
 	raft   *raft.Raft
 	logger *log.Logger
@@ -38,7 +38,7 @@ type BookStore struct {
 
 // New returns a new Store (BookDatabase).
 func New(inmem bool, raftPath string) *BookStore {
-	db, err := repository.New(raftPath)
+	db, err := database.New(raftPath)
 
 	if err != nil {
 		log.Fatalf("failed to create database: %s", err)
@@ -116,20 +116,20 @@ func (s *BookStore) Open(enableSingle bool, localID string) error {
 }
 
 // Get returns the value for the given key.
-func (s *BookStore) Get(isbn repository.ISBN) (repository.Book, error) {
+func (s *BookStore) Get(isbn database.ISBN) (database.Book, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.repo.GetBook(isbn)
 }
 
 // GetAll returns all values.
-func (s *BookStore) GetAll() ([]repository.Book, error) {
+func (s *BookStore) GetAll() ([]database.Book, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.repo.GetAllBooks()
 }
 
-func (s *BookStore) Create(value repository.Book) error {
+func (s *BookStore) Create(value database.Book) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -147,7 +147,7 @@ func (s *BookStore) Create(value repository.Book) error {
 }
 
 // Set sets the value for the given key.
-func (s *BookStore) Edit(key repository.ISBN, value repository.Book) error {
+func (s *BookStore) Edit(key database.ISBN, value database.Book) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -168,7 +168,7 @@ func (s *BookStore) Edit(key repository.ISBN, value repository.Book) error {
 }
 
 // Delete deletes the given key.
-func (s *BookStore) Delete(key repository.ISBN) error {
+func (s *BookStore) Delete(key database.ISBN) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -257,7 +257,7 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	defer f.mu.Unlock()
 
 	// Clone the map.
-	o := make(map[string]repository.Book)
+	o := make(map[string]database.Book)
 	allBooks, err := f.repo.GetAllBooks()
 	if err != nil {
 		return nil, err
@@ -271,7 +271,7 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 
 // Restore stores the key-value store to a previous state.
 func (f *fsm) Restore(rc io.ReadCloser) error {
-	o := make(map[string]repository.Book)
+	o := make(map[string]database.Book)
 	if err := json.NewDecoder(rc).Decode(&o); err != nil {
 		return err
 	}
@@ -285,20 +285,20 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 	return nil
 }
 
-func (f *fsm) applyCreate(value repository.Book) (api_cad.Status, error) {
+func (f *fsm) applyCreate(value database.Book) (api_cad.Status, error) {
 	return f.repo.CreateBook(value)
 }
 
-func (f *fsm) applyEdit(value repository.Book) (api_cad.Status, error) {
+func (f *fsm) applyEdit(value database.Book) (api_cad.Status, error) {
 	return f.repo.EditBook(value)
 }
 
-func (f *fsm) applyDelete(isbn repository.ISBN) (api_cad.Status, error) {
+func (f *fsm) applyDelete(isbn database.ISBN) (api_cad.Status, error) {
 	return f.repo.RemoveBook(isbn)
 }
 
 type fsmSnapshot struct {
-	store map[string]repository.Book
+	store map[string]database.Book
 }
 
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {

@@ -3,7 +3,7 @@ package store
 import (
 	"time"
 
-	"library-manager/book-database/repository"
+	"library-manager/book-database/database"
 )
 
 type OperationType int
@@ -23,7 +23,7 @@ const (
 
 type Operation struct {
 	OpType    OperationType
-	Key       repository.ISBN
-	Value     repository.Book
+	Key       database.ISBN
+	Value     database.Book
 	TimeStamp time.Time
 }

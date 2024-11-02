@@ -5,7 +5,7 @@ package httpd
 import (
 	"encoding/json"
 	"io"
-	"library-manager/book-database/repository"
+	"library-manager/book-database/database"
 	"log"
 	"net"
 	"net/http"
@@ -14,11 +14,11 @@ import (
 
 // Store is the interface Raft-backed stores must implement
 type Store interface {
-	Get(isbn repository.ISBN) (repository.Book, error)
-	GetAll() ([]repository.Book, error)
-	Create(value repository.Book) error
-	Edit(isbn repository.ISBN, value repository.Book) error
-	Delete(repository.ISBN) error
+	Get(isbn database.ISBN) (database.Book, error)
+	GetAll() ([]database.Book, error)
+	Create(value database.Book) error
+	Edit(isbn database.ISBN, value database.Book) error
+	Delete(database.ISBN) error
 	// Join joins the node, identitifed by nodeID and reachable at addr, to the cluster.
 	Join(nodeID string, addr string) error
 }
@@ -140,7 +140,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// If there is a key get the item.
-		v, err := s.store.Get(repository.ISBN(k))
+		v, err := s.store.Get(database.ISBN(k))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -155,7 +155,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 
 	case "POST":
 		// Read the value from the POST body.
-		v := repository.Book{}
+		v := database.Book{}
 		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -170,12 +170,12 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 		if k == "" {
 			w.WriteHeader(http.StatusBadRequest)
 		}
-		v := repository.Book{}
+		v := database.Book{}
 		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if err := s.store.Edit(repository.ISBN(k), v); err != nil {
+		if err := s.store.Edit(database.ISBN(k), v); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -186,7 +186,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if err := s.store.Delete(repository.ISBN(k)); err != nil {
+		if err := s.store.Delete(database.ISBN(k)); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
