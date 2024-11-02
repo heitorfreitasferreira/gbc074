@@ -25,4 +25,4 @@
 
 1. Implementar script replica.sh para instanciar replicas (0, 1 ou 2) e adicioná-las em um cluster (0 ou 1). FALTA SUBIR O USER-DATABASE
 1. Atualizar scripts de execução dos servidores se necessário.
-1. Atualizar makefile para instalar novas dependências necessárias. NO BOOK-DATABASE E USER-DATABASE
+1. Atualizar makefile para instalar novas dependências necessárias. NO BOOK-DATABASE E USER-DATABASE - VERIFICAR
