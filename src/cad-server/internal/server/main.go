@@ -12,10 +12,13 @@ import (
 
 type Server struct {
 	api_cad.UnimplementedPortalCadastroServer
+	databaseAddr string // Endereço http do banco, ex. http://localhost:21000
 }
 
-func NewServer() *Server {
-	return &Server{}
+func NewServer(databaseAddr string) *Server {
+	return &Server{
+		databaseAddr: databaseAddr,
+	}
 }
 
 func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
