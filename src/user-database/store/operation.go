@@ -17,14 +17,21 @@ const (
 type Table string
 
 const (
-	TableUser Table = "user"
-	TableBook Table = "user-book"
+	TableUser     Table = "user"
+	TableUserBook Table = "user-book"
 )
+
+// Define an interface that both database.User and database.UserBook implement
+type OperationValue interface{}
+
+// Ensure that database.User and database.UserBook implement the OperationValue interface
+var _ OperationValue = (*database.User)(nil)
+var _ OperationValue = (*database.UserBook)(nil)
 
 type Operation struct {
 	Table     Table
 	OpType    OperationType
 	Key       utils.CPF
-	Value     database.User
+	Value     OperationValue
 	TimeStamp time.Time
 }
