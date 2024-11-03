@@ -125,10 +125,7 @@ func (s *Server) ObtemTodosUsuarios(request *api_cad.Vazia, stream api_cad.Porta
 func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
 	log.Default().Printf("Editando usuário %s", usuario.Cpf)
 
-	user := user_database.User{
-		Cpf:  utils.CPF(usuario.Cpf),
-		Nome: usuario.Nome,
-	}
+	user := user_database.ProtoToUser(usuario)
 
 	if !user.Cpf.Validate() {
 		log.Printf("CPF inválido")
