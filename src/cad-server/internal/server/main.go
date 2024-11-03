@@ -118,6 +118,7 @@ func (s *Server) ObtemTodosUsuarios(request *api_cad.Vazia, stream api_cad.Porta
 }
 
 func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
+
 	log.Default().Printf("Editando usuário %s", usuario.Cpf)
 
 	user := user_database.ProtoToUser(usuario)
@@ -133,7 +134,8 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*a
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
-	req, err := http.NewRequest("PUT", s.userDatabaseAddr+"/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("PUT", s.userDatabaseAddr+"/user"+usuario.Cpf, bytes.NewBuffer(jsonData))
+
 	if err != nil {
 		log.Printf("Erro ao criar requisição HTTP: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar requisição HTTP"}, nil
@@ -147,11 +149,6 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*a
 		return &api_cad.Status{Status: 1, Msg: "Erro ao editar usuário"}, nil
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Erro ao editar usuário: código de status %d", resp.StatusCode)
-		return &api_cad.Status{Status: 1, Msg: "Erro ao editar usuário"}, nil
-	}
 
 	return &api_cad.Status{Status: 0, Msg: "Usuário editado com sucesso"}, nil
 }
@@ -169,8 +166,15 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api_cad.Identificad
 		log.Printf("Erro ao criar requisição HTTP: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar requisição HTTP"}, nil
 	}
+	req.Header.Set("Content-Type", "application/json")
 
-	defer req.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Erro ao remover usuário: %v", err)
+		return &api_cad.Status{Status: 1, Msg: "Erro ao remover usuário"}, nil
+	}
+	defer resp.Body.Close()
 
 	return &api_cad.Status{Status: 0, Msg: "Usuário removido com sucesso"}, nil
 
@@ -188,15 +192,23 @@ func (s *Server) NovoLivro(ctx context.Context, livro *api_cad.Livro) (*api_cad.
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
-	req, err := http.Post(s.bookDatabaseAddr+"/book", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil || req.StatusCode != http.StatusCreated {
+	req, err := http.NewRequest("POST", s.bookDatabaseAddr+"/book", bytes.NewBuffer(jsonData))
+	if err != nil {
 		log.Printf("Erro ao criar livro: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar livro"}, nil
 	}
 
 	defer req.Body.Close()
 
-	return &api_cad.Status{Status: 0}, nil
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Erro ao enviar requisição para criar livro: %v", err)
+		return &api_cad.Status{Status: 1, Msg: "Erro ao criar livro"}, nil
+	}
+	defer resp.Body.Close()
+
+	return &api_cad.Status{Status: 0, Msg: "Livro criado com sucesso"}, nil
 }
 
 func (s *Server) ObtemLivro(ctx context.Context, request *api_cad.Identificador) (*api_cad.Livro, error) {
@@ -205,15 +217,25 @@ func (s *Server) ObtemLivro(ctx context.Context, request *api_cad.Identificador)
 	if !isbn.Validate() {
 		return nil, errors.New("ISBN inválido")
 	}
+	req, err := http.NewRequest("GET", s.userDatabaseAddr+"/book/"+request.Id, nil)
 
-	req, err := http.Get(s.bookDatabaseAddr + "/book/" + request.Id)
 	if err != nil {
 		log.Printf("Erro ao criar requisição: %v", err)
 		return nil, errors.New("Erro ao criar requisição")
 	}
+	defer req.Body.Close()
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Printf("Erro ao obter livro: %v", err)
+		return nil, errors.New("Erro ao obter livro")
+	}
+	defer resp.Body.Close()
 
 	var book book_database.Book
-	jsonData := json.NewDecoder(req.Body)
+	jsonData := json.NewDecoder(resp.Body)
 	if err := jsonData.Decode(&book); err != nil {
 		log.Printf("Erro ao decodificar dados do usuário: %v", err)
 		return nil, errors.New("Erro ao decodificar dados do usuário")
@@ -240,7 +262,6 @@ func (s *Server) ObtemTodosLivros(request *api_cad.Vazia, stream api_cad.PortalC
 		return fmt.Errorf("erro ao decodificar dados dos livros: %w", err)
 	}
 
-	// Enviar cada livro pela stream
 	for _, book := range books {
 		protoBook := book_database.BookToProto(book)
 		if err := stream.Send(&protoBook); err != nil {
