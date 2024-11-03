@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -39,7 +40,7 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*ap
 	}
 
 	// TODO: Aqui é só um exemplo de como fazer a chamada http que eu não alterei muito pq ainda não ta pronto o banco de dados
-	req, err := http.Post(s.userDatabaseAddr+"/create", "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.Post(s.userDatabaseAddr+"/user", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || req.StatusCode != http.StatusCreated {
 		log.Printf("Erro ao criar usuário: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar usuário"}, nil
@@ -54,6 +55,27 @@ func (s *Server) ObtemUsuario(ctx context.Context, request *api_cad.Identificado
 }
 
 func (s *Server) ObtemTodosUsuarios(request *api_cad.Vazia, stream api_cad.PortalCadastro_ObtemTodosUsuariosServer) error {
+	req, err := http.Get(s.userDatabaseAddr + "/user")
+	if err != nil {
+		log.Printf("Erro ao obter usuários: %v", err)
+		return errors.New("Erro ao obter usuários")
+	}
+	defer req.Body.Close()
+
+	jsonData := json.NewDecoder(req.Body)
+	var users []database.User
+	if err := jsonData.Decode(&users); err != nil {
+		log.Printf("Erro ao decodificar dados: %v", err)
+		return errors.New("Erro ao decodificar dados")
+	}
+
+	for _, user := range users {
+		protoUser := database.UserToProto(user)
+		err := stream.Send(&protoUser)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
