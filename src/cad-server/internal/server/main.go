@@ -42,7 +42,7 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*ap
 	}
 
 	req, err := http.Post(s.userDatabaseAddr+"/user", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil || req.StatusCode != http.StatusCreated {
+	if err != nil {
 		log.Printf("Erro ao criar usuário: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar usuário"}, nil
 	}
@@ -120,10 +120,7 @@ func (s *Server) ObtemTodosUsuarios(request *api_cad.Vazia, stream api_cad.Porta
 func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*api_cad.Status, error) {
 	log.Default().Printf("Editando usuário %s", usuario.Cpf)
 
-	user := user_database.User{
-		Cpf:  utils.CPF(usuario.Cpf),
-		Nome: usuario.Nome,
-	}
+	user := user_database.ProtoToUser(usuario)
 
 	if !user.Cpf.Validate() {
 		log.Printf("CPF inválido")
@@ -136,14 +133,25 @@ func (s *Server) EditaUsuario(ctx context.Context, usuario *api_cad.Usuario) (*a
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
-	req, err := http.NewRequest("PUT", s.userDatabaseAddr+"/user"+usuario.Cpf, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("PUT", s.userDatabaseAddr+"/user", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Printf("Erro ao criar requisição HTTP: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar requisição HTTP"}, nil
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	defer req.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Erro ao editar usuário: %v", err)
+		return &api_cad.Status{Status: 1, Msg: "Erro ao editar usuário"}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Erro ao editar usuário: código de status %d", resp.StatusCode)
+		return &api_cad.Status{Status: 1, Msg: "Erro ao editar usuário"}, nil
+	}
 
 	return &api_cad.Status{Status: 0, Msg: "Usuário editado com sucesso"}, nil
 }
@@ -156,13 +164,7 @@ func (s *Server) RemoveUsuario(ctx context.Context, request *api_cad.Identificad
 		return &api_cad.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
-	jsonData, err := json.Marshal(request)
-	if err != nil {
-		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
-		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
-	}
-
-	req, err := http.NewRequest("DELETE", s.userDatabaseAddr+"/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("DELETE", s.userDatabaseAddr+"/user/"+request.Id, nil)
 	if err != nil {
 		log.Printf("Erro ao criar requisição HTTP: %v", err)
 		return &api_cad.Status{Status: 1, Msg: "Erro ao criar requisição HTTP"}, nil

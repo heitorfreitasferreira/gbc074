@@ -18,8 +18,8 @@ import (
 func main() {
 	port := flag.String("port", "50052", "Port to listen on")
 	host := flag.String("host", "127.0.0.1", "Host to listen on")
-	userDatabaseAddr := flag.String("cluster0", "http://localhost:21000", "Address of the user database server")
 	bookDatabaseAddr := flag.String("cluster1", "http://localhost:11000", "Address of the book database server")
+	userDatabaseAddr := flag.String("cluster0", "http://localhost:13000", "Address of the user database server")
 
 	flag.Parse()
 	ch := make(chan os.Signal, 1)

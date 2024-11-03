@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -40,7 +41,7 @@ func ProtoToUser(protoUser *api_cad.Usuario) User {
 	}
 }
 
-type InMemoryUserRepo struct {
+type LevelDBUserRepo struct {
 	db    *leveldb.DB
 	cache map[utils.CPF]database.Timed[User]
 	mu    sync.RWMutex
@@ -53,15 +54,15 @@ func New(dbPath string) (UserRepo, error) {
 		return nil, err
 	}
 
-	repo := &InMemoryUserRepo{cache: make(map[utils.CPF]database.Timed[User]), db: db}
+	repo := &LevelDBUserRepo{cache: make(map[utils.CPF]database.Timed[User]), db: db}
 	go repo.cleanupCache()
 	return repo, nil
 }
-func (repo *InMemoryUserRepo) Close() error {
+func (repo *LevelDBUserRepo) Close() error {
 	return repo.db.Close()
 }
 
-func (repo *InMemoryUserRepo) CreateUser(user User) (api_cad.Status, error) {
+func (repo *LevelDBUserRepo) CreateUser(user User) (api_cad.Status, error) {
 	exists, err := repo.db.Has([]byte(user.Cpf), nil)
 	if err != nil {
 		return api_cad.Status{Status: 1, Msg: "erro ao verificar se o usuário já existe"}, err
@@ -82,7 +83,9 @@ func (repo *InMemoryUserRepo) CreateUser(user User) (api_cad.Status, error) {
 	return api_cad.Status{Status: 0, Msg: "usuário criado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) EditaUsuario(user User) (api_cad.Status, error) {
+func (repo *LevelDBUserRepo) EditaUsuario(user User) (api_cad.Status, error) {
+	fmt.Println("DB EditaUsuario")
+
 	exists, err := repo.db.Has([]byte(user.Cpf), nil)
 	if err != nil {
 		return api_cad.Status{}, err
@@ -106,7 +109,7 @@ func (repo *InMemoryUserRepo) EditaUsuario(user User) (api_cad.Status, error) {
 	return api_cad.Status{Status: 0, Msg: "usuário atualizado com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (api_cad.Status, error) {
+func (repo *LevelDBUserRepo) RemoveUsuario(id utils.CPF) (api_cad.Status, error) {
 	exists, err := repo.db.Has([]byte(id), nil)
 	if err != nil {
 		return api_cad.Status{Status: 1, Msg: "erro ao verificar usuário"}, err
@@ -125,7 +128,7 @@ func (repo *InMemoryUserRepo) RemoveUsuario(id utils.CPF) (api_cad.Status, error
 	return api_cad.Status{Status: 0, Msg: "usuário removido com sucesso"}, nil
 }
 
-func (repo *InMemoryUserRepo) ObtemUsuario(id utils.CPF) (User, error) {
+func (repo *LevelDBUserRepo) ObtemUsuario(id utils.CPF) (User, error) {
 	// TUTORIAL: Leitura tem que ver no cache primeiro
 	if user, found := repo.getFromCache(id); found {
 		return user, nil
@@ -144,7 +147,7 @@ func (repo *InMemoryUserRepo) ObtemUsuario(id utils.CPF) (User, error) {
 	return user, nil
 }
 
-func (repo *InMemoryUserRepo) ObtemTodosUsuarios() ([]User, error) {
+func (repo *LevelDBUserRepo) ObtemTodosUsuarios() ([]User, error) {
 	var users []User
 	iter := repo.db.NewIterator(nil, nil)
 	defer iter.Release()
@@ -165,7 +168,7 @@ func (repo *InMemoryUserRepo) ObtemTodosUsuarios() ([]User, error) {
 
 // CACHE
 
-func (repo *InMemoryUserRepo) cleanupCache() {
+func (repo *LevelDBUserRepo) cleanupCache() {
 	ticker := time.NewTicker(time.Millisecond * 500)
 	for range ticker.C {
 		repo.mu.Lock()
@@ -179,7 +182,7 @@ func (repo *InMemoryUserRepo) cleanupCache() {
 	}
 }
 
-func (repo *InMemoryUserRepo) getFromCache(cpf utils.CPF) (User, bool) {
+func (repo *LevelDBUserRepo) getFromCache(cpf utils.CPF) (User, bool) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	user, ok := repo.cache[cpf]
@@ -193,7 +196,7 @@ func (repo *InMemoryUserRepo) getFromCache(cpf utils.CPF) (User, bool) {
 	return user.Item, true
 }
 
-func (repo *InMemoryUserRepo) putInCache(user User) {
+func (repo *LevelDBUserRepo) putInCache(user User) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	repo.cache[user.Cpf] = database.NewTimed(user)

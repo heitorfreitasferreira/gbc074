@@ -97,27 +97,23 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Join request 1")
 	if len(m) != 2 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("Join request 2")
 	remoteAddr, ok := m["addr"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("Join request 3")
 	nodeID, ok := m["id"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println("Join request 4")
 	if err := s.store.Join(nodeID, remoteAddr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -125,7 +121,6 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleUserRequest(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("User request")
 	getKey := func() string {
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 3 {
@@ -185,6 +180,10 @@ func (s *Service) handleUserRequest(w http.ResponseWriter, r *http.Request) {
 		if k == "" {
 			w.WriteHeader(http.StatusBadRequest)
 		}
+
+		// TODO: Corrigir requisição até esse log aparecer na réplica. Daí remover log.
+		fmt.Println("PUT USER")
+
 		v := database.User{}
 		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
