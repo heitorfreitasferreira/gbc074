@@ -15,11 +15,16 @@ import (
 
 // Store is the interface Raft-backed stores must implement
 type Store interface {
-	Get(cpf utils.CPF) (database.User, error)
-	GetAll() ([]database.User, error)
-	Create(value database.User) error
-	Edit(cpf utils.CPF, value database.User) error
-	Delete(utils.CPF) error
+	GetUser(cpf utils.CPF) (database.User, error)
+	GetAllUsers() ([]database.User, error)
+	CreateUser(value database.User) error
+	EditUser(cpf utils.CPF, value database.User) error
+	DeleteUser(utils.CPF) error
+	CreateUserBook(value database.UserBook) error
+	DeleteUserBook(value database.UserBook) error
+	GetAllUserBooks() []database.UserBook
+	GetUserLoans(userId string) []database.LoanBookAndTime
+	RemoveUserLoans(value database.UserBook) error
 	// Join joins the node, identitifed by nodeID and reachable at addr, to the cluster.
 	Join(nodeID string, addr string) error
 }
@@ -71,8 +76,12 @@ func (s *Service) Close() {
 
 // ServeHTTP allows Service to serve HTTP requests.
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/key") {
-		s.handleKeyRequest(w, r)
+	if strings.HasPrefix(r.URL.Path, "/user") {
+		s.handleUserRequest(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/user-book/loan") {
+		s.handleUserLoanRequest(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/user-book") {
+		s.handleUserBookRequest(w, r)
 	} else if r.URL.Path == "/join" {
 		s.handleJoin(w, r)
 	} else {
@@ -110,7 +119,7 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
+func (s *Service) handleUserRequest(w http.ResponseWriter, r *http.Request) {
 	getKey := func() string {
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 3 {
@@ -124,7 +133,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 		k := getKey()
 		// If there is no key, get all items.
 		if k == "" {
-			v, err := s.store.GetAll()
+			v, err := s.store.GetAllUsers()
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -140,7 +149,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// If there is a key get the item.
-		v, err := s.store.Get(utils.CPF(k))
+		v, err := s.store.GetUser(utils.CPF(k))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -161,7 +170,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.store.Create(v); err != nil {
+		if err := s.store.CreateUser(v); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -175,7 +184,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if err := s.store.Edit(utils.CPF(k), v); err != nil {
+		if err := s.store.EditUser(utils.CPF(k), v); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -186,7 +195,7 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if err := s.store.Delete(utils.CPF(k)); err != nil {
+		if err := s.store.DeleteUser(utils.CPF(k)); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -194,6 +203,103 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func (s *Service) handleUserBookRequest(w http.ResponseWriter, r *http.Request) {
+	getKey := func() string {
+		parts := strings.Split(r.URL.Path, "/")
+		if len(parts) != 3 {
+			return ""
+		}
+		return parts[2]
+	}
+
+	switch r.Method {
+	case "GET":
+		k := getKey()
+		// If there is a key, return bad request.
+		if k != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		v := s.store.GetAllUserBooks()
+
+		b, err := json.Marshal(v)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		io.Writer.Write(w, b)
+		return
+
+	case "POST":
+		// Read the value from the POST body.
+		v := database.UserBook{}
+		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if err := s.store.CreateUserBook(v); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+	case "DELETE":
+		// Read the value from the DELETE body.
+		v := database.UserBook{}
+		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := s.store.DeleteUserBook(v); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Service) handleUserLoanRequest(w http.ResponseWriter, r *http.Request) {
+	getKey := func() string {
+		parts := strings.Split(r.URL.Path, "/")
+		if len(parts) != 3 {
+			return ""
+		}
+		return parts[2]
+	}
+
+	switch r.Method {
+	case "GET":
+		k := getKey()
+		if k == "" {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		userLoans := s.store.GetUserLoans(k)
+		b, err := json.Marshal(userLoans)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		io.Writer.Write(w, b)
+		break
+	case "DELETE":
+		// Read the value from the DELETE body.
+		v := database.UserBook{}
+		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := s.store.RemoveUserLoans(v); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+
 }
 
 // Addr returns the address on which the Service is listening

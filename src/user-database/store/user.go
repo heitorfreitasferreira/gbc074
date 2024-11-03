@@ -30,8 +30,9 @@ type UserStore struct {
 	RaftBind string
 	inmem    bool
 
-	mu   sync.Mutex
-	repo database.UserRepo
+	mu           sync.Mutex
+	userRepo     database.UserRepo
+	userBookRepo database.UserBookRepo
 
 	raft   *raft.Raft
 	logger *log.Logger
@@ -47,9 +48,9 @@ func New(inmem bool, raftPath string) *UserStore {
 	}
 
 	return &UserStore{
-		repo:   db,
-		inmem:  inmem,
-		logger: log.New(os.Stderr, "[store] ", log.LstdFlags),
+		userRepo: db,
+		inmem:    inmem,
+		logger:   log.New(os.Stderr, "[store] ", log.LstdFlags),
 	}
 }
 
@@ -116,21 +117,21 @@ func (s *UserStore) Open(enableSingle bool, localID string) error {
 	return nil
 }
 
-// Get returns the value for the given key.
-func (s *UserStore) Get(cpf utils.CPF) (database.User, error) {
+// GetUser returns the value for the given key.
+func (s *UserStore) GetUser(cpf utils.CPF) (database.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.repo.ObtemUsuario(cpf)
+	return s.userRepo.ObtemUsuario(cpf)
 }
 
-// GetAll returns all values.
-func (s *UserStore) GetAll() ([]database.User, error) {
+// GetAllUsers returns all values.
+func (s *UserStore) GetAllUsers() ([]database.User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.repo.ObtemTodosUsuarios()
+	return s.userRepo.ObtemTodosUsuarios()
 }
 
-func (s *UserStore) Create(value database.User) error {
+func (s *UserStore) CreateUser(value database.User) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -148,7 +149,7 @@ func (s *UserStore) Create(value database.User) error {
 }
 
 // Set sets the value for the given key.
-func (s *UserStore) Edit(key utils.CPF, value database.User) error {
+func (s *UserStore) EditUser(key utils.CPF, value database.User) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -168,8 +169,8 @@ func (s *UserStore) Edit(key utils.CPF, value database.User) error {
 	return f.Error()
 }
 
-// Delete deletes the given key.
-func (s *UserStore) Delete(key utils.CPF) error {
+// DeleteUser deletes the given key.
+func (s *UserStore) DeleteUser(key utils.CPF) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -184,6 +185,72 @@ func (s *UserStore) Delete(key utils.CPF) error {
 		return err
 	}
 
+	f := s.raft.Apply(operationJson, raftTimeout)
+	return f.Error()
+}
+
+func (s *UserStore) CreateUserBook(userBook database.UserBook) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+	operation := &Operation{
+		Table:     TableUserBook,
+		OpType:    OperationCreate,
+		Value:     userBook,
+		TimeStamp: time.Now(),
+	}
+	operationJson, err := json.Marshal(operation)
+	if err != nil {
+		return err
+	}
+	f := s.raft.Apply(operationJson, raftTimeout)
+	return f.Error()
+}
+
+func (s *UserStore) DeleteUserBook(userbook database.UserBook) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+	operation := &Operation{
+		Table:     TableUserBook,
+		OpType:    OperationDelete,
+		Value:     userbook,
+		TimeStamp: time.Now(),
+	}
+	operationJson, err := json.Marshal(operation)
+	if err != nil {
+		return err
+	}
+	f := s.raft.Apply(operationJson, raftTimeout)
+	return f.Error()
+}
+
+func (s *UserStore) GetAllUserBooks() []database.UserBook {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.userBookRepo.GetAll()
+}
+
+func (s *UserStore) GetUserLoans(userId string) []database.LoanBookAndTime {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.userBookRepo.GetUserLoans(userId)
+}
+
+func (s *UserStore) RemoveUserLoan(userbook database.UserBook) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+	operation := &Operation{
+		Table:     TableUserBook,
+		OpType:    OperationDelete,
+		Value:     userbook,
+		TimeStamp: time.Now(),
+	}
+	operationJson, err := json.Marshal(operation)
+	if err != nil {
+		return err
+	}
 	f := s.raft.Apply(operationJson, raftTimeout)
 	return f.Error()
 }
@@ -235,15 +302,48 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 	}
 
 	var status api_cad.Status
-	switch operation.OpType {
-	case OperationCreate:
-		status, _ = f.applyCreate(operation.Value)
-	case OperationEdit:
-		status, _ = f.applyEdit(operation.Value)
-	case OperationDelete:
-		status, _ = f.applyDelete(operation.Key)
-	default:
-		panic(fmt.Sprintf("unrecognized Operation op: %v", operation.OpType))
+	if operation.Table == TableUser {
+		switch operation.OpType {
+		case OperationCreate:
+			user, ok := operation.Value.(database.User)
+			if !ok {
+				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+			}
+
+			status, _ = f.applyCreateUser(user)
+			break
+		case OperationEdit:
+			user, ok := operation.Value.(database.User)
+			if !ok {
+				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+			}
+
+			status, _ = f.applyEditUser(user)
+			break
+		case OperationDelete:
+			status, _ = f.applyDeleteUser(operation.Key)
+			break
+		default:
+			panic(fmt.Sprintf("unrecognized Operation op: %v", operation.OpType))
+		}
+
+	} else if operation.Table == TableUserBook {
+		switch operation.OpType {
+		case OperationCreate:
+			userBook, ok := operation.Value.(database.UserBook)
+			if !ok {
+				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+			}
+			f.applyCreateUserBook(userBook)
+			break
+		case OperationDelete:
+			userBook, ok := operation.Value.(database.UserBook)
+			if !ok {
+				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+			}
+			f.applyDeleteUserBook(userBook)
+			break
+		}
 	}
 
 	return &status
@@ -255,16 +355,25 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	defer f.mu.Unlock()
 
 	// Clone the map.
-	o := make(map[string]database.User)
-	allUsers, err := f.repo.ObtemTodosUsuarios()
+	udb := make(map[string]database.User)
+	allUsers, err := f.userRepo.ObtemTodosUsuarios()
 	if err != nil {
 		return nil, err
 	}
-
 	for _, user := range allUsers {
-		o[string(user.Cpf)] = user
+		udb[string(user.Cpf)] = user
 	}
-	return &fsmSnapshot{store: o}, nil
+
+	ubdb := make(map[string]database.UserBook)
+	allUserBooks := f.userBookRepo.GetAll()
+	for _, userBook := range allUserBooks {
+		ubdb[userBook.UserCPF] = userBook
+	}
+
+	return &fsmSnapshot{store: StoreDatabases{
+		UserRepo:     udb,
+		UserBookRepo: ubdb,
+	}}, nil
 }
 
 // Restore stores the key-value store to a previous state.
@@ -277,26 +386,43 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, value := range o {
-		f.repo.CreateUser(value)
+		f.userRepo.CreateUser(value)
 	}
 
 	return nil
 }
 
-func (f *fsm) applyCreate(value database.User) (api_cad.Status, error) {
-	return f.repo.CreateUser(value)
+func (f *fsm) applyCreateUser(value database.User) (api_cad.Status, error) {
+	return f.userRepo.CreateUser(value)
 }
 
-func (f *fsm) applyEdit(value database.User) (api_cad.Status, error) {
-	return f.repo.EditaUsuario(value)
+func (f *fsm) applyEditUser(value database.User) (api_cad.Status, error) {
+	return f.userRepo.EditaUsuario(value)
 }
 
-func (f *fsm) applyDelete(isbn utils.CPF) (api_cad.Status, error) {
-	return f.repo.RemoveUsuario(isbn)
+func (f *fsm) applyDeleteUser(isbn utils.CPF) (api_cad.Status, error) {
+	return f.userRepo.RemoveUsuario(isbn)
+}
+
+func (f *fsm) applyCreateUserBook(value database.UserBook) {
+	f.userBookRepo.Create(value)
+}
+
+func (f *fsm) applyDeleteUserBook(value database.UserBook) error {
+	return f.userBookRepo.Delete(value)
+}
+
+func (f *fsm) applyRemoveUserLoan(value database.UserBook) error {
+	return f.userBookRepo.RemoveUserLoan(value)
+}
+
+type StoreDatabases struct {
+	UserRepo     map[string]database.User
+	UserBookRepo map[string]database.UserBook
 }
 
 type fsmSnapshot struct {
-	store map[string]database.User
+	store StoreDatabases
 }
 
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
