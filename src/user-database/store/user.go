@@ -135,15 +135,19 @@ func (s *UserStore) CreateUser(value database.User) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
+
 	operation := &Operation{
+		Table:     TableUser,
 		OpType:    OperationCreate,
 		Value:     value,
 		TimeStamp: time.Now(),
 	}
+
 	operationJson, err := json.Marshal(operation)
 	if err != nil {
 		return err
 	}
+
 	f := s.raft.Apply(operationJson, raftTimeout)
 	return f.Error()
 }
@@ -154,7 +158,10 @@ func (s *UserStore) EditUser(key utils.CPF, value database.User) error {
 		return fmt.Errorf("not leader")
 	}
 
+	fmt.Printf("\nStore EditUser: %v", value)
+
 	operation := &Operation{
+		Table:     TableUser,
 		OpType:    OperationEdit,
 		Key:       key,
 		Value:     value,
@@ -176,6 +183,7 @@ func (s *UserStore) DeleteUser(key utils.CPF) error {
 	}
 
 	operation := &Operation{
+		Table:     TableUser,
 		OpType:    OperationDelete,
 		Key:       key,
 		TimeStamp: time.Now(),
@@ -298,26 +306,30 @@ type fsm UserStore
 func (f *fsm) Apply(l *raft.Log) interface{} {
 	var operation Operation
 	if err := json.Unmarshal(l.Data, &operation); err != nil {
-		panic(fmt.Sprintf("failed to unmarshal Operation: %s", err.Error()))
+		return &api_cad.Status{Status: 1, Msg: fmt.Sprintf("failed to unmarshal Operation: %s", err.Error())}
 	}
+
+	fmt.Printf("\nOperation: %v", operation)
 
 	var status api_cad.Status
 	if operation.Table == TableUser {
 		switch operation.OpType {
 		case OperationCreate:
-			user, ok := operation.Value.(database.User)
+			userMap, ok := operation.Value.(map[string]interface{})
 			if !ok {
-				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+				return &api_cad.Status{Status: 1, Msg: fmt.Sprintf("unexpected value type: %T", operation.Value)}
 			}
 
+			user := mapToUser(userMap)
 			status, _ = f.applyCreateUser(user)
 			break
 		case OperationEdit:
-			user, ok := operation.Value.(database.User)
+			userMap, ok := operation.Value.(map[string]interface{})
 			if !ok {
-				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+				return &api_cad.Status{Status: 1, Msg: fmt.Sprintf("unexpected value type: %T", operation.Value)}
 			}
 
+			user := mapToUser(userMap)
 			status, _ = f.applyEditUser(user)
 			break
 		case OperationDelete:
@@ -330,23 +342,39 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 	} else if operation.Table == TableUserBook {
 		switch operation.OpType {
 		case OperationCreate:
-			userBook, ok := operation.Value.(database.UserBook)
+			userBookMap, ok := operation.Value.(map[string]interface{})
 			if !ok {
-				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+				return &api_cad.Status{Status: 1, Msg: fmt.Sprintf("unexpected value type: %T", operation.Value)}
 			}
+			userBook := mapToUserBook(userBookMap)
 			f.applyCreateUserBook(userBook)
 			break
 		case OperationDelete:
-			userBook, ok := operation.Value.(database.UserBook)
+			userBookMap, ok := operation.Value.(map[string]interface{})
 			if !ok {
-				panic(fmt.Sprintf("unexpected value type: %T", operation.Value))
+				return &api_cad.Status{Status: 1, Msg: fmt.Sprintf("unexpected value type: %T", operation.Value)}
 			}
+			userBook := mapToUserBook(userBookMap)
 			f.applyDeleteUserBook(userBook)
 			break
 		}
 	}
 
 	return &status
+}
+
+func mapToUser(m map[string]interface{}) database.User {
+	return database.User{
+		Cpf:  utils.CPF(m["Cpf"].(string)),
+		Nome: m["Nome"].(string),
+	}
+}
+
+func mapToUserBook(m map[string]interface{}) database.UserBook {
+	return database.UserBook{
+		UserCPF:  m["UserCPF"].(string),
+		BookISBN: m["BookISBN"].(string),
+	}
 }
 
 // Snapshot returns a snapshot of the key-value store.
