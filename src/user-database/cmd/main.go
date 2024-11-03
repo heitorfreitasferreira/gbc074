@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -11,16 +10,16 @@ import (
 	"os"
 	"os/signal"
 
-	"library-manager/book-database/http"
-	"library-manager/book-database/store"
+	"library-manager/user-database/http"
+	"library-manager/user-database/store"
 )
 
 // INFO: This file is based on this example project: https://github.com/otoolep/hraftd/tree/master
 
 // Command line defaults
 const (
-	DefaultHTTPAddr = "localhost:21000"
-	DefaultRaftAddr = "localhost:22000" // 10000 a mais que o book-database
+	DefaultHTTPAddr = "localhost:13000"
+	DefaultRaftAddr = "localhost:14000"
 )
 
 // Command line parameters

@@ -237,7 +237,7 @@ func (s *UserStore) GetUserLoans(userId string) []database.LoanBookAndTime {
 	return s.userBookRepo.GetUserLoans(userId)
 }
 
-func (s *UserStore) RemoveUserLoan(userbook database.UserBook) error {
+func (s *UserStore) RemoveUserLoans(userbook database.UserBook) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}

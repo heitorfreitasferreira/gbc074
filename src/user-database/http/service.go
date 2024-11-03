@@ -78,14 +78,14 @@ func (s *Service) Close() {
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/user") {
 		s.handleUserRequest(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/user-book/loan") {
+	} else if strings.HasPrefix(r.URL.Path, "/user/loan") {
 		s.handleUserLoanRequest(w, r)
 	} else if strings.HasPrefix(r.URL.Path, "/user-book") {
 		s.handleUserBookRequest(w, r)
 	} else if r.URL.Path == "/join" {
 		s.handleJoin(w, r)
 	} else {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 

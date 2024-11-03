@@ -23,7 +23,7 @@ USER_DATABASE_BIN := user-database
 
 .PHONY: all install-deps bib-server cad-server bib-client cad-client clean
 
-all: clean bib-server cad-server bib-client cad-client
+all: clean bib-server cad-server bib-client cad-client book-database user-database
 
 install-deps:
 	@echo "Instalando dependências..."
@@ -46,12 +46,12 @@ cad-client: install-deps
 	@$(GO) build -o $(BUILD_DIR)/$(CAD_CLIENT_BIN) $(CAD_CLIENT)
 
 book-database: install-deps
-	@echo "Compilando o banco de dados de livros..."
+	@echo "Compilando o banco de dados de Livros..."
 	@$(GO) build -o $(BUILD_DIR)/$(BOOK_DATABASE_BIN) $(BOOK_DATABASE)
 
 
 user-database: install-deps
-	@echo "Compilando o banco de dados de usuários..."
+	@echo "Compilando o banco de dados de Usuários..."
 	@$(GO) build -o $(BUILD_DIR)/$(USER_DATABASE_BIN) $(USER_DATABASE)
 
 
