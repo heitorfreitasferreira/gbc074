@@ -58,7 +58,7 @@ if [ $CLUSTER_ID -eq 0 ]; then
         ./bin/user-database -id $REPLICA_ID \
             -haddr localhost:$REPLICA_HPORT \
             -raddr localhost:$REPLICA_RPORT \
-            -join :$START_USER_RPORT \
+            -join :$START_USER_HPORT \
             $REPLICA_DIR
     fi
 else
@@ -79,7 +79,7 @@ else
         ./bin/book-database -id $REPLICA_ID \
             -haddr localhost:$REPLICA_HPORT \
             -raddr localhost:$REPLICA_RPORT \
-            -join :$START_BOOK_RPORT \
+            -join :$START_BOOK_HPORT \
             $REPLICA_DIR
     fi
 fi

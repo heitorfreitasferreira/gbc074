@@ -74,6 +74,8 @@ func main() {
 	}
 
 	// If join was specified, make the join request.
+	fmt.Println("joinAddr", joinAddr)
+	fmt.Println("raftAddr", raftAddr)
 	if joinAddr != "" {
 		if err := join(joinAddr, raftAddr, nodeID); err != nil {
 			log.Fatalf("failed to join node at %s: %s", joinAddr, err.Error())

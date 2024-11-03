@@ -4,6 +4,7 @@ package httpd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"library-manager/shared/utils"
 	"library-manager/user-database/database"
@@ -96,23 +97,27 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("Join request 1")
 	if len(m) != 2 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	fmt.Println("Join request 2")
 	remoteAddr, ok := m["addr"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	fmt.Println("Join request 3")
 	nodeID, ok := m["id"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	fmt.Println("Join request 4")
 	if err := s.store.Join(nodeID, remoteAddr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -120,6 +125,7 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleUserRequest(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("User request")
 	getKey := func() string {
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 3 {
