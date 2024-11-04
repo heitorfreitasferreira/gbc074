@@ -120,6 +120,7 @@ func (s *Server) RealizaDevolucao(stream api_bib.PortalBiblioteca_RealizaDevoluc
 
 func (s *Server) BloqueiaUsuarios(ctx context.Context, request *api_cad.ListaIdentificadores) (*api_cad.Status, error) {
     jsonData, err := json.Marshal(request)
+
     if err != nil {
         log.Printf("Erro ao converter dados dos identificadores para JSON: %v", err)
         return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
@@ -158,6 +159,7 @@ func (s *Server) LiberaUsuarios(ctx context.Context, request *api_cad.ListaIdent
         log.Printf("Erro ao liberar usuários: %v", err)
         return &api_cad.Status{Status: 1, Msg: "Erro ao liberar usuários"}, nil
     }
+
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
@@ -166,6 +168,7 @@ func (s *Server) LiberaUsuarios(ctx context.Context, request *api_cad.ListaIdent
     }
 
     var status api_cad.Status
+
     if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
         log.Printf("Erro ao decodificar resposta do servidor Raft: %v", err)
         return &api_cad.Status{Status: 1, Msg: "Erro ao decodificar resposta do servidor Raft"}, err

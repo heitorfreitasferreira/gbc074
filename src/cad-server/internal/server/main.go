@@ -32,12 +32,14 @@ func (s *Server) NovoUsuario(ctx context.Context, usuario *api_cad.Usuario) (*ap
 	cpf := utils.CPF(usuario.Cpf)
 	if !cpf.Validate() {
 		log.Printf("CPF inválido")
+
 		return &api_cad.Status{Status: 1, Msg: "CPF inválido"}, nil
 	}
 
 	jsonData, err := json.Marshal(usuario)
 	if err != nil {
 		log.Printf("Erro ao converter dados do usuário para JSON: %v", err)
+	
 		return &api_cad.Status{Status: 1, Msg: "Erro ao converter dados para JSON"}, nil
 	}
 
