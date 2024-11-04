@@ -35,7 +35,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	api_bib.RegisterPortalVBibliotecaServer(s, server.NewServer(*userDatabaseAddr, *bookDatabaseAddr))
+	api_bib.RegisterPortalBibliotecaServer(s, server.NewServer(*userDatabaseAddr, *bookDatabaseAddr))
 
 	go func() {
 		<-ch
