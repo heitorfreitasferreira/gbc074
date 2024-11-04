@@ -9,65 +9,42 @@ import (
 	"os/signal"
 	"syscall"
 
-	"library-manager/bib-server/internal/database"
-	"library-manager/bib-server/internal/queue"
-	"library-manager/bib-server/internal/server"
-	"library-manager/shared/api/bib"
+	// Import para os repositórios
+	"library-manager/bib-server/internal/server" // Import para o pacote do servidor
+	api_bib "library-manager/shared/api/bib"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
-	log.Printf("Hello, World! CMS Server")
-
-	// Get CLI arguments
 	port := flag.String("port", "50051", "Port to listen on")
 	host := flag.String("host", "127.0.0.1", "Host to listen on")
+	// Endereços dos bancos de dados
+	bookDatabaseAddr := flag.String("cluster1", "http://localhost:11000", "Address of the book database server")
+	userDatabaseAddr := flag.String("cluster0", "http://localhost:13000", "Address of the user database server")
+
 	flag.Parse()
+	ch := make(chan os.Signal, 1)
+	// Recebe notificações de interrupção e termina graciosamente
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
-	mqttClient := queue.GetMqttBroker(*host, 1883, os.Getpid())
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("error connecting to MQTT broker: %v", token.Error())
-	} else {
-		log.Println("Connected to MQTT broker")
-	}
-
-	defer mqttClient.Disconnect(250)
-
-	// Create TCP port listener
+	// Cria um listener TCP na porta especificada
 	list, err := net.Listen("tcp", fmt.Sprintf("%s:%s", *host, *port))
 	if err != nil {
 		log.Fatalf("error opening port %s: %v", *port, err)
 	}
+	s := grpc.NewServer()
 
-	// Create gRPC grpcServer instance
-	grpcServer := grpc.NewServer()
+	api_bib.RegisterPortalVBibliotecaServer(s, server.NewServer(*userDatabaseAddr, *bookDatabaseAddr))
 
-	// Register server handlers
-	api_bib.RegisterPortalBibliotecaServer(
-		grpcServer,
-		server.NewServer(
-			database.ConcreteUserRepo,
-			database.ConcreteBookRepo,
-			database.ConcreteUserBookRepo,
-			mqttClient,
-		),
-	)
-
-	// Create channel to capture SIGERM and gracefully stop grpc server.
-	channel := make(chan os.Signal, 1)
-	signal.Notify(channel, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-channel
+		<-ch
 		log.Println("Gracefully stopping the server...")
-		grpcServer.GracefulStop()
+		s.GracefulStop()
 	}()
 
 	log.Printf("Server listening at %v\n", list.Addr())
-	// Make server run to be used by gRPC
-	err = grpcServer.Serve(list)
-	if err != nil {
+	if err := s.Serve(list); err != nil {
 		log.Fatal(err)
 	}
-
 }

@@ -1,80 +1,35 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"time"
+	"net/http"
 
 	"library-manager/bib-server/internal/database"
 	"library-manager/bib-server/internal/queue/handlers"
-	"library-manager/bib-server/internal/server/utils"
-	"library-manager/shared/api/bib"
-
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	api_bib "library-manager/shared/api/bib"
+	api_cad "library-manager/shared/api/cad"
+	"library-manager/shared/utils"
 )
 
 type Server struct {
-	api_bib.UnimplementedPortalBibliotecaServer
-
-	userRepo     database.UserRepo
-	bookRepo     database.BookRepo
-	userBookRepo database.UserBookRepo
-
-	mqttClient mqtt.Client
+	api_cad.UnimplementedPortalCadastroServer
+	userDatabaseAddr string // Endereço http do banco, ex. http://localhost:21000
+	bookDatabaseAddr string
 }
 
-func NewServer(userRepo database.UserRepo, bookRepo database.BookRepo, userBookRepo database.UserBookRepo, mqttClient mqtt.Client) api_bib.PortalBibliotecaServer {
+func NewServer(userDatabaseAddr, bookDatabaseAddr string) *Server {
 	return &Server{
-		userRepo:     userRepo,
-		bookRepo:     bookRepo,
-		userBookRepo: userBookRepo,
-		mqttClient:   mqttClient,
+		userDatabaseAddr: userDatabaseAddr,
+		bookDatabaseAddr: bookDatabaseAddr,
 	}
 }
 
 var qos byte = 2
-
-func (s *Server) publishMessage(topic handlers.UserBookTopic, message []byte) error {
-	var errorMessage string
-
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish(string(topic), qos, false, message)
-		token.Wait()
-		if token.Error() == nil {
-			log.Printf("Mensagem publicada no tópico %v", topic)
-			return nil
-		} else {
-			errorMessage = fmt.Sprintf("Erro ao publicar mensagem no tópico MQTT: %v", token.Error())
-		}
-	} else {
-		errorMessage = "Cliente MQTT não está conectado"
-	}
-
-	return errors.New("Server.publishMessage: " + errorMessage)
-}
-
-func (s *Server) publishWithEmptyMessage(topic handlers.UserBookTopic) error {
-	var errorMessage string
-
-	if s.mqttClient.IsConnected() {
-		token := s.mqttClient.Publish(string(topic), qos, false, "")
-		token.Wait()
-		if token.Error() == nil {
-			log.Printf("Mensagem vazia publicada no tópico %v", topic)
-			return nil
-		} else {
-			errorMessage = fmt.Sprintf("Erro ao publicar mensagem vazia no tópico MQTT: %v", token.Error())
-		}
-	} else {
-		errorMessage = "Cliente MQTT não está conectado"
-	}
-
-	return errors.New("Server.publishWithEmptyMessage: " + errorMessage)
-}
 
 func (s *Server) RealizaEmprestimo(stream api_bib.PortalBiblioteca_RealizaEmprestimoServer) error {
 	for {
