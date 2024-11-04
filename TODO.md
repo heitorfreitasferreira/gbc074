@@ -12,7 +12,7 @@
 
 1. Utilizar pacote [Raft para GO](https://github.com/hashicorp/raft). OK
 1. Remover uso do MQTT OK
-1. Colocar a chamada http para o servidor raft no handler grpc (onde tinha a chamada pro MQTT)
+1. Colocar a chamada http para o servidor raft no handler grpc (onde tinha a chamada pro MQTT) Analisar bib-server 
 1. Conferir se é realmente é para usar HTTP na comunicação cad-server/bib-server --> user-database/book-database OK
 
 ## 3. Implementar serviço de cache de dados
